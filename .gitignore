@@ -1,0 +1,17 @@
+.gradle/
+.gradle-home/
+.gradle-toolchain/
+.android-home/
+.idea/
+*.iml
+local.properties
+build/
+app/build/
+output/*.apk
+output/*.png
+output/*.xml
+output/*.log
+output/*.err
+output/ui-fix-validation.json
+*.jks
+*.keystore

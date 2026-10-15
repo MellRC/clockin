@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">工力全开金丝熊</title>
+  <circle cx="256" cy="256" r="250" fill="#FFCB6F"/>
+  <g transform="translate(20.48 20.48) scale(.92)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Wide, forward-facing hamster silhouette -->
+    <path fill="#FFFDF8" d="M93 189C62 149 86 91 132 87c39-3 66 30 64 68 19-16 39-24 60-24s42 8 60 24c-2-38 25-71 64-68 46 4 70 62 39 102 46 33 73 83 73 139 0 86-68 148-151 155-25 3-47 1-67-8-20 9-42 11-67 8-83-7-151-69-151-155 0-56 27-106 73-139z"/>
+    <path fill="#F3B956" d="M117 122c18-25 55-27 72-7 12 14 13 35 6 53-25-4-49 3-70 19-20-16-23-44-8-65zm278 0c-18-25-55-27-72-7-12 14-13 35-6 53 25-4 49 3 70 19 20-16 23-44 8-65z"/>
+    <path fill="#EAAE50" d="M199 143c15-17 35-26 57-26s42 9 57 26c-12 19-31 31-57 31s-45-12-57-31z"/>
+    <path fill="#FFF0E5" d="M124 123c13-13 34-14 47-2 10 9 14 24 10 37-20-2-39 4-55 15-12-14-13-36-2-50zm264 0c-13-13-34-14-47-2-10 9-14 24-10 37 20-2 39 4 55 15 12-14 13-36 2-50z"/>
+    <!-- Plump cheeks and muzzle -->
+    <ellipse cx="153" cy="302" rx="65" ry="53" fill="#F9D9C8" opacity=".9"/>
+    <ellipse cx="359" cy="302" rx="65" ry="53" fill="#F9D9C8" opacity=".9"/>
+    <ellipse cx="256" cy="326" rx="83" ry="66" fill="#FFFFFF"/>
+    <ellipse cx="256" cy="345" rx="37" ry="27" fill="#FFF0E5"/>
+    <!-- Eyes -->
+    <ellipse cx="192" cy="251" rx="13" ry="18" fill="#55391F"/>
+    <ellipse cx="320" cy="251" rx="13" ry="18" fill="#55391F"/>
+    <circle cx="196" cy="245" r="4" fill="#FFFFFF" stroke="none"/>
+    <circle cx="324" cy="245" r="4" fill="#FFFFFF" stroke="none"/>
+    <!-- Nose, smile, and whiskers -->
+    <path fill="#C98269" d="M244 311q12-11 24 0-2 14-12 14t-12-14z" stroke="none"/>
+    <path d="M256 325v13m0 0q-15 17-29 0m29 0q15 17 29 0" fill="none" stroke="#80553C" stroke-width="7"/>
+    <path d="M145 331 93 320m54 27-57 3m277-19 52-11m-54 38 57 3" fill="none" stroke="#C49379" stroke-width="5" opacity=".85"/>
+  </g>
+</svg>

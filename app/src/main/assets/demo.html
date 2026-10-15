@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#fff">
+<title>工力全开 Demo</title>
+<style>
+:root{font-family:Inter,"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;color:#3f3529;background:#f5f0e7;--muted:#897f72;--green:#746000;--line:#f0e8dc}
+*{box-sizing:border-box}body{margin:0}.phone{width:min(100%,430px);min-height:100vh;margin:auto;padding:0 20px 30px;background:#fff;overflow:hidden}
+.status{height:45px;display:flex;align-items:center;justify-content:space-between;padding:0 5px;font-weight:700;font-size:13px}
+.icons{display:flex;gap:8px;align-items:center}.battery{width:21px;height:11px;border:1.5px solid;border-radius:3px;position:relative}.battery:before{content:"";display:block;width:13px;height:6px;margin:1px;background:#746000;border-radius:1px}.battery:after{content:"";position:absolute;right:-4px;top:3px;width:2px;height:4px;background:currentColor}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 2px 20px}.brand{display:flex;align-items:center;gap:11px}.logo{width:44px;height:44px;display:block;object-fit:contain;border-radius:15px}.brand h1{font-size:20px;margin:0;letter-spacing:-.4px}.brand p{font-size:12px;color:var(--muted);margin:3px 0 0}.more{width:38px;height:38px;border:0;border-radius:50%;background:#fff8ec;color:#70552b;font-size:20px}
+.date{display:flex;align-items:end;justify-content:space-between;margin:0 2px 13px}.date h2{font-size:24px;margin:0;letter-spacing:-.6px}.date small{font-size:11px;color:var(--muted)}
+.hero{height:155px;border-radius:25px;padding:20px 21px;color:white;background:linear-gradient(130deg,#e8b44e,#f5d11b 70%,#f5d995);position:relative;overflow:hidden;box-shadow:0 14px 28px #74600024}.hero:before,.hero:after{content:"";position:absolute;border:1px solid #ffffff22;border-radius:50%;right:-35px;top:-65px;width:190px;height:190px}.hero:after{right:-7px;top:-35px;width:130px;height:130px}
+.hero-top{display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1}.eyebrow{font-size:12px;opacity:.8}.toggle{width:48px;height:28px;border:0;border-radius:20px;padding:3px;background:#ffffff55}.toggle i{display:block;width:22px;height:22px;background:white;border-radius:50%;transition:.2s}.toggle.off{background:#ffffff35}.toggle.off i{transform:translateX(0)}.toggle.on i{transform:translateX(20px);background:#746000}.hero h3{font-size:25px;margin:17px 0 4px;position:relative;z-index:1}.hero p{font-size:12px;opacity:.8;margin:0;position:relative;z-index:1}.spark{position:absolute;bottom:17px;right:24px;color:#f5d11b;font-size:28px}
+.head{display:flex;align-items:center;justify-content:space-between;margin:24px 2px 11px}.head h3{font-size:16px;margin:0}.head span{font-size:11px;color:var(--muted)}
+.location{height:165px;display:flex;padding:16px;border-radius:21px;background:white;border:1px solid #f0e8dc;position:relative;overflow:hidden}.info{position:relative;z-index:2;width:59%;display:flex;flex-direction:column;align-items:flex-start}.tag{font-size:10px;color:var(--green);background:#fff8d6;border-radius:20px;padding:5px 9px;font-weight:700}.info h4{font-size:15px;margin:12px 0 4px}.info p{font-size:11px;line-height:1.5;color:var(--muted);margin:0}.info button{margin-top:auto;padding:10px 0 0;border:0;background:none;color:var(--green);font-size:12px;font-weight:700}
+.map{position:absolute;right:0;top:0;width:46%;height:100%;background:#fff5e3;overflow:hidden}.road{position:absolute;width:180px;height:12px;background:white;border:1px solid #eadfcf;border-radius:8px;right:-20px;top:65px;transform:rotate(-35deg)}.road.r2{top:105px;right:-57px;transform:rotate(42deg);width:190px}.road.r3{top:0;right:55px;transform:rotate(86deg);width:185px}.block{position:absolute;width:38px;height:26px;border-radius:8px;background:#f0dfbd}.b1{right:22px;top:12px}.b2{right:18px;bottom:8px;width:31px;height:20px}.b3{left:0;top:24px;width:28px;height:18px}.radius{position:absolute;width:100px;height:100px;border-radius:50%;left:50%;top:50%;transform:translate(-50%,-50%);background:#f5d11b36;border:1px solid #ddba17aa;display:grid;place-items:center}.pin{width:31px;height:31px;border-radius:50% 50% 50% 4px;transform:rotate(-45deg);background:#f5d11b;border:4px solid white;box-shadow:0 4px 8px #74600026}.pin:after{content:"";display:block;width:6px;height:6px;margin:8px;background:white;border-radius:50%}.radius-label{position:absolute;bottom:12px;right:10px;padding:4px 6px;border-radius:8px;background:#ffffffdc;color:#78654a;font-size:9px}
+.schedule{padding:4px 16px;background:white;border:1px solid #f0e8dc;border-radius:21px}.event{height:64px;display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:4px;border-bottom:1px solid var(--line)}.event:last-child{border:0}.time{font-size:16px;font-weight:750;font-variant-numeric:tabular-nums}.desc strong{font-size:13px;display:block}.desc small{font-size:10px;color:#938879;display:block;margin-top:4px}.state{font-size:10px;color:#897b66;background:#fff7e8;padding:5px 8px;border-radius:12px;white-space:nowrap}.current .state{color:#a26522;background:#fff3df}.dot{width:7px;height:7px;display:inline-block;border-radius:50%;background:#c4a300;margin-right:4px}.current .dot{background:#e7ac57}
+.week{margin-top:16px;padding:15px 16px;border:1px solid #f0e8dc;border-radius:21px;background:white;display:flex;align-items:center;gap:12px}.week-icon{width:39px;height:39px;border-radius:13px;background:#fff2df;display:grid;place-items:center;font-size:18px}.week-info{flex:1}.week-info strong{display:block;font-size:13px}.week-info span{display:block;font-size:10px;color:var(--muted);margin-top:4px}.week button{border:0;border-radius:20px;background:#fff8d6;color:#746000;padding:9px 11px;font-size:11px;font-weight:700}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:17px}.actions button{padding:13px;border:1px solid #f0e8dc;border-radius:15px;background:white;color:#70552b;font-size:12px;font-weight:700}.actions .primary{border-color:#f5d11b;background:#f5d11b;color:white;box-shadow:0 6px 14px #f5d11b28}.foot{text-align:center;color:#9a8f80;font-size:10px;margin:18px 0}.toast{position:fixed;left:50%;bottom:30px;transform:translate(-50%,18px);opacity:0;transition:.2s;pointer-events:none;padding:12px 17px;border-radius:24px;background:#473b2e;color:white;font-size:12px;white-space:nowrap;box-shadow:0 8px 24px #0d2b2633}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(min-width:500px){body{padding:18px 0}.phone{min-height:844px;border-radius:32px;box-shadow:0 25px 80px #24383122}}
+.android-app .status{display:none}
+.home-top-spacer{height:16px}
+.android-app .home-top-spacer{height:36px}
+.android-app .page-top-spacer{height:82px}
+/* Screenshot-inspired event feed and floating pill navigation. */
+.phone{padding-bottom:112px;background:#fff}
+header{padding:9px 2px 16px}
+.brand{gap:10px}.logo{width:39px;height:39px;border-radius:14px;box-shadow:none}
+.brand h1{font-size:18px}.brand p{font-size:11px}
+.head-actions{display:flex;gap:8px}
+.head-actions button{width:39px;height:39px;border:0;border-radius:50%;background:#f5f7f6;color:#3f3529;font-size:18px}
+.date{display:flex;align-items:center;justify-content:space-between;margin:0 2px 17px}.date h2{font-size:30px;letter-spacing:-.8px}.date-copy{min-width:0}.date small{display:block;margin-top:5px}
+.hero{height:auto;padding:13px 15px;border-radius:17px;background:#f7faf8;color:#3f3529;border:1px solid #f0e8dc;box-shadow:none}
+.hero:before,.hero:after,.spark{display:none}
+.hero-top{z-index:1}.eyebrow{color:#897f72;opacity:1}
+.toggle{background:#dce7e2}.toggle.on{background:#a6ddc3}.toggle.on i{background:#f5d11b}
+.hero h3{font-size:17px;margin:8px 0 3px;z-index:1}.hero p{font-size:11px;color:#897f72;opacity:1;z-index:1}
+.head{margin:22px 2px 10px}.head h3{font-size:17px}.head span{font-size:11px}
+.schedule{padding:0;border:0;border-radius:0;background:transparent}
+.event{height:77px;grid-template-columns:48px 50px minmax(0,1fr) auto;gap:8px;padding:7px 10px;margin:0 0 6px;border:1px solid #f0f3f2;border-radius:15px;background:#fff}
+.time{font-size:13px;color:#62736e}
+.desc strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.desc small{font-size:9px}
+.state{font-size:9px;padding:5px 7px}
+.art{width:48px;height:59px;border-radius:10px;position:relative;overflow:hidden;display:grid;place-items:center;color:white;font-size:21px;box-shadow:inset 0 0 0 1px #00000008}
+.art:before,.art:after{content:"";position:absolute;border:1px solid #ffffff6b;border-radius:50%;width:42px;height:42px;right:-13px;top:-9px}
+.art:after{width:28px;height:28px;right:-5px;top:-2px}
+.art span{position:relative;z-index:1;text-shadow:0 1px 5px #0003}
+.art.morning{background:linear-gradient(155deg,#f8c97a,#f09c7b 55%,#c76f73)}
+.art.noon{background:linear-gradient(155deg,#b6d5cb,#64a89a 55%,#357d74)}
+.art.return{background:linear-gradient(155deg,#aebfe9,#8584c3 58%,#655a9a)}
+.art.evening{background:linear-gradient(155deg,#f3b789,#dd806f 55%,#9c5b69)}
+.location{border-radius:17px;min-height:143px;height:143px}
+.info h4{font-size:13px;margin-top:10px}.info p{font-size:10px}
+.week{margin-top:15px;border-radius:17px;padding:12px 14px}
+.week-icon{border-radius:12px}.week-info strong{font-size:12px}
+.actions{margin-top:14px;grid-template-columns:1fr}.actions button{border-radius:13px}
+.foot{margin:12px 0;color:#9a8f80;font-size:9px}
+.bottom-nav{position:fixed;z-index:5;left:50%;bottom:18px;transform:translateX(-50%);width:min(calc(100% - 38px),370px);height:61px;padding:5px 9px;border:1px solid #edf1ef;border-radius:34px;background:#fffffff2;box-shadow:0 8px 28px #3f352918;display:grid;grid-template-columns:repeat(3,1fr);backdrop-filter:blur(14px);overflow:hidden}
+.nav-indicator{position:absolute;z-index:0;left:9px;top:5px;bottom:5px;width:calc((100% - 18px)/3);border-radius:27px;background:#fff8d6;transform:translateX(0);transition:transform .34s cubic-bezier(.22,1,.36,1);will-change:transform}
+.bottom-nav a{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;text-decoration:none;color:#928779;font-size:9px;border-radius:27px;transition:color .22s ease;-webkit-tap-highlight-color:transparent;outline:none}
+.bottom-nav a:focus,.bottom-nav a:focus-visible{outline:none;box-shadow:none}
+.bottom-nav a .nav-icon{font-size:16px;line-height:1;transition:transform .32s cubic-bezier(.22,1,.36,1),color .22s ease}
+.bottom-nav a.active{background:transparent;color:#3f3529;font-weight:700}
+.bottom-nav a.active .nav-icon{color:#f5d11b;animation:navIconPop .36s cubic-bezier(.2,.8,.3,1)}
+@keyframes navIconPop{0%{transform:scale(.78) translateY(2px)}65%{transform:scale(1.2) translateY(-2px)}100%{transform:scale(1) translateY(0)}}
+.phone [id]{scroll-margin-top:18px}
+@media(min-width:500px){.bottom-nav{bottom:30px}}
+/* Warm yellow theme sampled from the user's reference image (#F5D11B). */
+.battery:before{background:#f5d11b}
+.logo{color:#4b3919;background:#f5d11b;box-shadow:0 7px 18px #f5d11b38}
+.tag{color:#746000;background:#fff8d6}
+.info button{color:#746000}
+.radius{background:#f5d11b36;border-color:#ddba17aa}
+.pin{background:#f5d11b;box-shadow:0 4px 8px #74600026}
+.toggle.on{background:#fff0a3}
+.toggle.on i{background:#746000}
+.week button{background:#fff8d6;color:#746000}
+.actions .primary{border-color:#f5d11b;background:#f5d11b;color:#4b3919;box-shadow:0 6px 14px #f5d11b55}
+.bottom-nav a.active{background:transparent;color:#4b3919}
+.bottom-nav a.active .nav-icon{color:#746000}
+.page{display:none}.page.active{display:block}
+.page-title{font-size:30px;letter-spacing:-.7px;margin:10px 2px 7px;color:#3f3529}
+.page-top-spacer{height:52px}
+.page-subtitle{font-size:12px;color:#897f72;margin:0 2px 18px}
+.salary-hero{padding:25px 20px 20px;border-radius:22px;background:radial-gradient(ellipse at 50% 0%,#fff0bd 0,#fffbf5 58%);border:1px solid #f0d69a;text-align:center;position:relative;overflow:hidden;isolation:isolate;box-shadow:0 8px 26px #d6a43b18}
+.coin-layer{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2;perspective:600px}.coin-layer>.coin{position:absolute;top:var(--top);left:var(--left);display:grid;place-items:center;width:var(--size);height:var(--size);border:2px solid #d99516;border-radius:50%;background:radial-gradient(circle at 29% 25%,#fff9d3 0 8%,#ffe994 22%,#ffc83f 62%,#ed9d13 100%);box-shadow:inset 0 0 0 3px #ffdc71,inset 0 0 0 5px #fff1a8,0 6px 14px #a16b1c66;color:#8e5700;font-size:calc(var(--size)*.43);font-weight:950;text-shadow:0 1px #fff1a8;animation:coinTick .62s cubic-bezier(.2,.75,.26,1) forwards}.coin-layer>.coin:after{content:"";position:absolute;inset:3px;border:1px solid #fff7ce;border-radius:50%;opacity:.85}@keyframes coinTick{0%{opacity:0;transform:translate3d(0,12px,0) rotateY(0) scale(.55)}22%{opacity:1;transform:translate3d(0,0,0) rotateY(80deg) scale(1.08)}100%{opacity:0;transform:translate3d(var(--drift),-62px,0) rotateY(260deg) scale(.82)}}
+.salary-hero>*:not(.coin-layer){position:relative;z-index:3}.earned.coin-pop{animation:amountTick .32s cubic-bezier(.2,.75,.26,1)}@keyframes amountTick{0%{transform:scale(1)}38%{transform:scale(1.1);color:#b8790a;text-shadow:0 3px 14px #ffc84266}100%{transform:scale(1)}}
+.salary-hero .eyebrow{display:block}.earned{display:block;font-size:42px;line-height:1.2;letter-spacing:-1.3px;color:#3f3529;font-variant-numeric:tabular-nums;margin:10px 0 5px}
+.salary-hero small{color:#897f72;font-size:11px}.rate-line{margin-top:20px;padding-top:14px;border-top:1px solid #f0e8dc;display:flex;justify-content:space-between;color:#897f72;font-size:12px}.rate-line strong{color:#746000;font-size:14px}
+.progress-track{height:8px;border-radius:10px;background:#f2ede4;margin:17px 0 7px;overflow:hidden}.progress-fill{height:100%;width:0;border-radius:10px;background:#f5d11b;transition:width .5s}.progress-caption{display:flex;justify-content:space-between;font-size:10px;color:#897f72}
+.form-card{margin-top:14px;padding:16px;border:1px solid #f0e8dc;border-radius:18px;background:#fff}
+.form-card h3{font-size:14px;margin:0 0 12px;color:#3f3529}.field{display:block;margin:11px 0}.field span{display:block;font-size:11px;color:#897f72;margin:0 0 6px}.field input,.field select{width:100%;height:44px;padding:0 12px;border:1px solid #ede4d6;border-radius:12px;background:#fffdf9;color:#3f3529;font:inherit;font-size:14px;outline:none}.field input:focus,.field select:focus{border-color:#e6c51e;box-shadow:0 0 0 3px #f5d11b30}
+.segmented{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.segmented button{border:1px solid #ede4d6;border-radius:12px;padding:10px 5px;background:#fff;color:#81786b;font-size:11px}.segmented button.selected{border-color:#e6c51e;background:#fff8d6;color:#746000;font-weight:700}
+.settings-card{padding:15px;border:1px solid #f0e8dc;border-radius:18px;background:#fff;margin:12px 0}.settings-card h3{margin:0 0 5px;font-size:14px}.settings-card p{margin:0 0 12px;color:#897f72;font-size:11px}.time-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.time-grid .field{margin:4px 0}.save-button{width:100%;border:0;border-radius:14px;padding:14px;background:#f5d11b;color:#4b3919;font-size:13px;font-weight:750;margin:12px 0 8px}
+.guide-overlay{display:none;position:fixed;inset:0;z-index:20;padding:20px 14px;background:#30281dcc;align-items:center;justify-content:center}.guide-overlay.show{display:flex}.guide-panel{width:min(100%,430px);max-height:88vh;overflow:auto;border-radius:24px;background:#fffdf9;padding:20px 16px 18px;box-shadow:0 18px 55px #20170d44}.guide-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.guide-heading h2{font-size:21px;margin:0;color:#3f3529}.guide-heading p{font-size:11px;color:#897f72;margin:5px 0 0}.guide-close{width:34px;height:34px;border:0;border-radius:50%;background:#fff8d6;color:#746000;font-size:20px}.guide-progress{height:7px;border-radius:8px;background:#f1e9dc;margin:16px 0 6px;overflow:hidden}.guide-progress i{display:block;width:0;height:100%;background:#e9ad43;border-radius:8px;transition:width .25s}.guide-count{font-size:10px;color:#897f72;margin-bottom:13px}.guide-step{display:grid;grid-template-columns:27px 1fr;gap:10px;padding:12px 0;border-top:1px solid #f0e8dc}.guide-number{width:25px;height:25px;border-radius:50%;display:grid;place-items:center;background:#fff1d2;color:#746000;font-size:11px;font-weight:800}.guide-step.done .guide-number{background:#f5d11b;color:#4b3919}.guide-copy{min-width:0}.guide-step-title{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:12px;font-weight:750;color:#3f3529}.guide-state{flex:none;border-radius:12px;padding:3px 7px;background:#f4efe7;color:#897f72;font-size:9px;font-weight:600}.guide-step.done .guide-state{background:#fff8d6;color:#746000}.guide-copy p{font-size:10px;line-height:1.5;color:#897f72;margin:5px 0 8px}.guide-action{border:0;border-radius:11px;background:#f5d11b;color:#4b3919;padding:8px 11px;font-size:10px;font-weight:750}.guide-action:disabled{background:#f5f0e7;color:#9a8f80}
+/* Remove the green cast and use warm neutral text and surfaces throughout. */
+:root{color:#3f3529;background:#f5f0e7;--muted:#897f72;--green:#746000;--line:#f0e8dc}
+body{background:#f5f0e7}
+.phone{background:#fff}
+.head-actions button{background:#fff8ec;color:#3f3529}
+.hero{background:#fffbf5;color:#3f3529;border-color:#f0e8dc}
+.toggle{background:#fff0d2}
+.toggle.off{background:#f0e8dc}
+.toggle.on{background:#fff0a3}
+.eyebrow,.hero p{color:#897f72}
+.location{border-color:#f0e8dc}
+.map{background:#fff5e3}
+.block{background:#f0dfbd}
+.road{border-color:#eadfcf}
+.radius{background:#f5d11b36;border-color:#ddba17aa}
+.radius-label{color:#78654a}
+.schedule{border-color:#f0e8dc}
+.event{border-color:#f0e8dc}
+.schedule .event:last-child{border:1px solid #f0e8dc}
+.art{background:transparent!important;color:#c4a300;box-shadow:none}
+.art:before,.art:after{display:none}
+.art span{text-shadow:none}
+.art.morning,.art.noon,.art.return,.art.evening{background:transparent}
+.time{color:#776d61}
+.desc strong{color:#3f3529}
+.desc small{color:#938879}
+.state{color:#81786b;background:#fffaf2;border:1px solid #eae1d3}
+.current .state{color:#746000;background:#fff0a3;border-color:#e6c51e;font-weight:700}
+.dot{background:#b7ad9e}
+.current .dot{background:#c4a300;box-shadow:0 0 0 2px #c4a30033}
+.week{border-color:#f0e8dc}
+.week-info strong{color:#3f3529}
+.week-info span{color:#897f72}
+.actions button{border-color:#f0e8dc;color:#70552b;background:#fff}
+.foot{color:#9a8f80}
+.toast{background:#473b2e}
+.bottom-nav{border-color:#f0e8dc;box-shadow:0 8px 28px #46331b18}
+.bottom-nav a{color:#928779}
+.bottom-nav a.active{background:transparent;color:#4b3919}
+.bottom-nav a.active .nav-icon{color:#746000}
+.logo,.actions .primary,.save-button{background:var(--accent)!important;color:var(--accent-fg,#4b3919)!important;border-color:var(--accent)!important}
+.tag,.week button{background:var(--accent-soft)!important;color:var(--accent-ink)!important}
+.nav-indicator{background:var(--accent)!important}.bottom-nav a.active{background:transparent!important;color:#000!important}
+.info button{background:transparent!important;color:var(--accent-ink)!important}
+.bottom-nav a.active .nav-icon{color:#000!important}.art{color:var(--accent-strong)!important}
+.current .state{background:var(--accent-soft)!important;border-color:var(--accent)!important;color:var(--accent-ink)!important}
+.current .dot{background:var(--accent-strong)!important}
+.toggle.on{background:var(--accent-soft)!important}.toggle.on i{background:var(--accent-ink)!important}
+.progress-fill,.pin{background:var(--accent)!important}.radius{border-color:var(--accent)!important}
+:root{--accent:#f5d11b;--accent-ink:#746000;--accent-soft:#fff8d6;--accent-strong:#c4a300}
+.checkin-zone{--honey-top:136px;position:relative;isolation:isolate;margin:0;padding:14px 20px 0;min-height:calc(var(--honey-top) + min(31.2019230769vw,134.1682692308px))}
+.android-app .checkin-zone{--honey-top:112px;min-height:calc(var(--honey-top) + 31.2019230769vw)}
+.checkin-zone:before{content:"";position:absolute;z-index:-1;top:0;left:0;width:100%;height:calc(var(--honey-top) + 1px);background:#f5d11b}
+.honey-splash{position:absolute;z-index:-1;top:var(--honey-top);left:0;width:100%;height:auto;display:block;overflow:visible}
+.honey-splash{pointer-events:none}
+.honey-splash path{fill:#f5d11b}
+.checkin-zone .date{margin:0 4px 14px}
+.checkin-zone .date{transform:translateY(24px)}
+.checkin-zone .date h2{font-size:29px}
+.checkin-zone .date small{color:#5b4b16}
+#homePage .hero{margin-bottom:12px}
+#homePage :is(.hero,.settings-card,.event,.location,.week){background:linear-gradient(135deg,rgba(255,255,255,.78),rgba(255,255,255,.34));border:1px solid rgba(162,147,111,.25);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 0 0 1px rgba(255,255,255,.52),0 3px 10px rgba(63,53,41,.035);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#homePage .head{margin:18px 2px 10px}
+/* Keep the yellow header outside the clipped scrolling content. */
+html,body{height:100%;overflow:hidden}
+.phone{height:100vh;height:100dvh;min-height:0;padding:0}
+.page{height:100%;overflow-y:auto;overscroll-behavior-y:contain;padding:0 20px 112px;scrollbar-width:none}
+.page::-webkit-scrollbar,.home-scroll::-webkit-scrollbar{display:none}
+#homePage.active{display:flex;flex-direction:column;overflow:hidden;padding:0;background:linear-gradient(#fff 24%,#faf8f2 100%)}
+.checkin-zone{flex:none;z-index:1}
+.home-scroll{flex:1;min-height:0;margin:0;padding:0 20px 112px;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:none}
+@media(min-width:500px){.phone{height:calc(100vh - 36px);height:calc(100dvh - 36px)}}
+body.android-app{padding:0}
+.android-app .phone{width:100%;height:100vh;height:100dvh;border-radius:0}
+@media(max-height:650px){.android-app .checkin-zone{--honey-top:100px}.android-app .home-top-spacer{height:24px}}
+</style>
+</head>
+<body><div class="phone">
+<section class="page active" id="homePage">
+<section class="checkin-zone">
+<div class="status"><span>9:41</span><span class="icons">5G　◖ <i class="battery"></i></span></div>
+<div class="home-top-spacer" aria-hidden="true"></div>
+<svg class="honey-splash" viewBox="0 0 390 138" preserveAspectRatio="xMidYMin meet" aria-hidden="true"><path d="M0.000 0.000L0.000 37.938L0.438 37.938L2.938 40.812L4.188 41.562L5.938 43.188L13.562 46.938L18.438 48.188L20.188 48.938L22.438 49.312L27.438 49.688L37.062 49.438L48.188 46.938L52.312 45.062L56.812 43.438L59.562 41.688L62.062 40.562L64.688 38.688L66.812 37.812L69.688 35.688L72.312 34.438L74.438 32.812L77.438 31.562L80.562 29.562L85.812 27.812L89.062 27.188L92.812 27.312L95.562 28.188L97.438 29.188L99.688 31.188L102.188 34.938L103.438 39.062L104.938 46.562L105.688 57.188L105.562 67.312L105.188 69.938L105.188 72.688L104.812 74.688L104.688 78.562L104.062 81.562L101.938 104.438L101.688 111.562L102.062 114.562L103.562 118.438L106.562 121.062L107.438 121.438L109.688 121.688L113.812 121.438L116.562 120.312L119.688 117.562L120.688 115.312L121.562 103.312L121.562 86.188L122.062 68.438L123.812 51.188L125.312 45.688L127.312 41.188L130.062 38.062L133.438 36.312L134.938 36.188L137.938 37.438L139.812 39.438L141.312 42.312L141.688 44.438L141.562 47.938L139.188 58.062L139.188 61.312L139.812 63.438L141.938 66.562L142.938 67.312L144.688 67.812L148.062 67.812L150.188 66.938L153.062 64.312L154.562 60.562L155.062 56.812L153.188 43.938L153.312 40.562L153.938 38.562L155.188 37.188L157.188 35.812L158.688 35.312L163.312 35.062L165.188 35.688L168.562 38.562L169.312 39.812L171.938 42.688L173.312 43.688L177.562 45.688L182.438 46.812L191.812 46.812L196.938 45.562L201.062 43.688L203.562 41.688L209.688 35.312L211.562 33.812L214.562 32.438L217.438 31.938L220.438 31.938L223.688 32.438L225.062 33.062L227.438 34.938L228.938 37.688L229.438 40.438L229.188 49.312L229.562 51.562L231.562 54.562L232.938 55.438L235.562 56.062L238.562 55.812L240.938 54.812L242.688 53.312L243.688 51.812L244.938 49.312L245.188 47.812L245.188 39.312L245.562 36.562L246.312 34.938L247.312 33.938L249.312 32.812L252.688 32.438L254.438 32.938L257.688 35.062L264.312 41.688L266.438 43.438L270.438 45.438L273.438 46.312L275.688 46.688L278.062 46.688L282.062 45.812L286.438 43.812L289.938 40.312L290.688 39.062L292.688 37.188L293.562 35.812L297.188 32.188L298.312 31.562L300.062 29.812L303.188 28.062L306.062 26.938L308.562 26.438L311.688 26.438L314.312 26.938L316.812 27.938L320.062 30.312L322.938 34.312L324.688 40.062L325.312 45.438L324.938 52.312L323.938 58.312L322.562 70.688L321.062 78.938L320.938 85.312L321.438 87.438L322.562 89.438L324.438 91.062L326.562 91.188L328.562 90.688L331.312 88.188L331.812 87.312L332.312 82.062L332.188 57.688L332.938 45.438L335.312 36.938L336.312 35.188L338.562 32.438L342.312 30.188L345.062 29.562L349.188 29.562L351.312 29.938L355.062 32.188L356.188 33.562L356.812 36.562L356.812 39.438L356.062 44.438L356.188 49.562L356.938 51.562L357.688 52.312L359.812 53.062L361.188 53.062L363.188 52.562L364.688 50.938L365.812 46.438L367.438 33.438L368.438 30.562L370.062 28.938L372.312 28.062L375.062 28.938L376.312 29.688L378.188 31.812L381.438 34.062L383.062 34.812L384.438 35.062L390.000 34.938L390.000 0.000Z"/></svg>
+<div class="date"><div class="date-copy"><h2>今天的打卡</h2><small id="homeDate"></small></div></div>
+</section>
+<div class="home-scroll" id="homeScroll" role="region" aria-label="打卡内容" tabindex="0">
+<section class="hero"><div class="hero-top"><span class="eyebrow">今日自动打卡</span><button id="toggle" class="toggle off" aria-label="切换自动打卡"><i></i></button></div><h3 id="heroTitle">自动打卡已暂停</h3><p id="heroSub">点击开启，先完成权限设置</p><span class="spark">✳</span></section>
+<section class="settings-card" id="homePermissionCard"><h3>打卡权限</h3><p>按步骤完成权限设置，减少漏打卡。</p><button class="save-button" onclick="openPermissionGuide()">开始分步设置</button></section>
+<div class="head" id="schedule"><h3>今天的安排　›</h3><span id="dayLabel">工作日 · 4 个时段</span></div>
+<section class="schedule">
+<div class="event current"><div class="art morning"><span>☼</span></div><span id="morningTime" class="time">07:30</span><span class="desc"><strong>到达公司后打开</strong><small>限时 60 分钟 · 300 米围栏</small></span><span class="state"><i class="dot"></i>待触发</span></div>
+<div class="event"><div class="art noon"><span>♨</span></div><span id="lunchStartTime" class="time">12:30</span><span class="desc"><strong>午间下班卡</strong><small>定时打开企业微信</small></span><span class="state"><i class="dot"></i>已安排</span></div>
+<div class="event"><div class="art return"><span>↗</span></div><span id="lunchEndTime" class="time">13:15</span><span class="desc"><strong>午间上班卡</strong><small>定时打开企业微信</small></span><span class="state"><i class="dot"></i>已安排</span></div>
+<div class="event"><div class="art evening"><span>☾</span></div><span id="workEndTime" class="time">18:00</span><span class="desc"><strong>下班卡</strong><small>定时打开企业微信</small></span><span class="state"><i class="dot"></i>已安排</span></div>
+</section>
+<div class="head"><h3>附近打卡点　›</h3><span>300 米范围</span></div>
+<section class="location" id="location"><div class="info"><span class="tag" id="tag">⌖ 位置已设置</span><h4>公司打卡范围</h4><p>进入范围后自动打开<br>企业微信</p><button onclick="setLocation()">重新设置位置　→</button></div><div class="map"><i class="block b1"></i><i class="block b2"></i><i class="block b3"></i><i class="road"></i><i class="road r2"></i><i class="road r3"></i><div class="radius"><i class="pin"></i></div><span class="radius-label">300 m 半径</span></div></section>
+<div class="head"><h3>本周排班</h3><span id="cycleSummary">大小周自动交替</span></div>
+<section class="week"><div class="week-icon">☀</div><div class="week-info"><strong id="weekTitle">本周 · 双休</strong><span id="weekCopy">下周自动单休 · 周六上班</span></div></section>
+<div class="actions" id="settings"><button class="primary" onclick="window.AndroidBridge?AndroidBridge.testWeCom():toast('Demo：将启动企业微信')">立即试开</button></div>
+</div>
+</section>
+<section class="page" id="salaryPage">
+<div class="status"><span>9:41</span><span class="icons">5G　◖ <i class="battery"></i></span></div>
+<div class="page-top-spacer" aria-hidden="true"></div>
+<h1 class="page-title">Oi，爆点金币</h1>
+<section class="salary-hero"><div id="coinLayer" class="coin-layer" aria-hidden="true"></div><span class="eyebrow">今天已赚</span><strong id="earned" class="earned">¥0.00</strong><small id="workState">输入月薪后开始计算</small><div class="rate-line"><span>每秒收入</span><strong id="rate">¥0.0000 / 秒</strong></div></section>
+<div class="progress-track"><div id="progress" class="progress-fill"></div></div><div class="progress-caption"><span id="elapsed">今日工时 0 分钟</span><span id="remaining">距离下班 —</span></div>
+<section class="form-card"><h3>薪资设置</h3><label class="field"><span>税前月薪（元）</span><input id="salaryInput" type="number" inputmode="decimal" min="0" step="100" placeholder="输入你的月薪"></label><button id="salarySave" class="save-button" onclick="salarySave()">保存月薪</button></section>
+<p class="foot">按平均月工作日估算；休息时段不累计。金额仅在本机计算。</p>
+</section>
+<section class="page" id="settingsPage">
+<div class="status"><span>9:41</span><span class="icons">5G　◖ <i class="battery"></i></span></div>
+<div class="page-top-spacer" aria-hidden="true"></div>
+<h1 class="page-title">设置</h1><p class="page-subtitle">调整工作时间、排班和打卡权限</p>
+<section class="settings-card"><h3>工作时间</h3><p>自动打卡和工资计时共用这组时间。</p><div class="time-grid"><label class="field"><span>上班打卡</span><input id="workStart" type="time" value="07:30"></label><label class="field"><span>午间下班</span><input id="lunchStart" type="time" value="12:30"></label><label class="field"><span>午间上班</span><input id="lunchEnd" type="time" value="13:15"></label><label class="field"><span>下班时间</span><input id="workEnd" type="time" value="18:00"></label></div><button class="save-button" onclick="saveSettings()">保存工作时间</button></section>
+<section class="settings-card"><h3>排班方式</h3><p>选择固定休息或大小周。大小周只需设置本周，下周自动切换。</p><div class="field"><span>工作周期</span><div class="segmented" id="cycleChoices"><button data-cycle="alternating" class="selected" onclick="setCycle('alternating')">大小周</button><button data-cycle="double" onclick="setCycle('double')">固定双休</button><button data-cycle="single" onclick="setCycle('single')">固定单休</button></div></div><div class="field" id="alternatingSettings"><span>本周安排 · 下周自动 <b id="nextWeekType">单休</b></span><div class="segmented"><button id="doubleWeek" onclick="setThisWeek(true)">本周双休</button><button id="bigWeek" onclick="setThisWeek(false)">本周单休</button></div></div></section>
+<section class="settings-card"><h3>打卡权限</h3><p>按步骤完成权限设置，减少漏打卡。</p><button class="save-button" onclick="openPermissionGuide()">开始分步设置</button></section>
+</section>
+</div><div id="permissionGuide" class="guide-overlay" role="dialog" aria-modal="true" aria-labelledby="guideTitle" onclick="if(event.target===this)closePermissionGuide()"><div class="guide-panel"><div class="guide-heading"><div><h2 id="guideTitle">打卡权限引导</h2><p>完成 4 项核心权限即可启用；锁屏提醒和后台省电按需设置</p></div><button class="guide-close" aria-label="关闭" onclick="closePermissionGuide()">×</button></div><div class="guide-progress"><i id="guideProgress"></i></div><div id="guideCount" class="guide-count"></div><div id="guideSteps"></div><p class="guide-count">锁屏提醒权限未开时，锁屏后可能无法响铃提示；后台运行设置因手机品牌而异。</p><button id="guideFinish" class="save-button" onclick="finishPermissionGuide()">完成</button></div></div><nav class="bottom-nav"><i id="navIndicator" class="nav-indicator" aria-hidden="true"></i><a href="#home" class="active" onclick="navTo(event,'homePage')"><span class="nav-icon">⌂</span><span>首页</span></a><a href="#salary" onclick="navTo(event,'salaryPage')"><span class="nav-icon">¥</span><span>实时工资</span></a><a href="#settings" onclick="navTo(event,'settingsPage')"><span class="nav-icon">⚙</span><span>设置</span></a></nav><div id="toast" class="toast"></div>
+<script>
+const homeDateFormatter=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',weekday:'short',month:'numeric',day:'numeric'});
+function refreshHomeDate(now=new Date()){const parts=homeDateFormatter.formatToParts(now),value=type=>parts.find(p=>p.type===type).value;document.getElementById('homeDate').textContent=value('weekday')+'，'+value('month')+'月'+value('day')+'日　·　Asia / Shanghai'}
+refreshHomeDate();setInterval(refreshHomeDate,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshHomeDate()});
+
+const t=document.getElementById('toast'),prefsKey='clockinDemoPrefs';let timer,enabled=false,pendingEnable=false,guideState={};
+const defaults={salary:'',cycle:'alternating',doubleRest:true,times:{start:'07:30',lunchStart:'12:30',lunchEnd:'13:15',end:'18:00'},theme:'honey'};
+let prefs={...defaults,...JSON.parse(localStorage.getItem(prefsKey)||'{}')};prefs.times={...defaults.times,...(prefs.times||{})};
+const honeyTheme=['#f5d11b','#746000','#fff8d6','#c4a300'];
+function savePrefs(){localStorage.setItem(prefsKey,JSON.stringify(prefs))}
+function toast(s){t.textContent=s;t.classList.add('show');clearTimeout(timer);timer=setTimeout(()=>t.classList.remove('show'),2200)}
+function navTo(e,id){e.preventDefault();const hash='#'+({homePage:'home',salaryPage:'salary',settingsPage:'settings'}[id]),links=[...document.querySelectorAll('.bottom-nav a')];links.forEach(a=>a.classList.toggle('active',a.getAttribute('href')===hash));document.getElementById('navIndicator').style.transform=`translateX(${links.findIndex(a=>a.getAttribute('href')===hash)*100}%)`;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id===id));const scroller=id==='homePage'?document.getElementById('homeScroll'):document.getElementById(id);scroller.scrollTop=0;if(id==='salaryPage')refreshEarnings()}
+let lastEarnedDisplay=null;function syncCoinTick(){const layer=document.getElementById('coinLayer'),amount=document.getElementById('earned');amount.classList.remove('coin-pop');void amount.offsetWidth;amount.classList.add('coin-pop');setTimeout(()=>amount.classList.remove('coin-pop'),360);[[5,55,42,-12],[83,47,36,12]].forEach(([left,top,size,drift],i)=>{const coin=document.createElement('span');coin.className='coin';coin.textContent='¥';coin.style.setProperty('--left',left+'%');coin.style.setProperty('--top',top+'%');coin.style.setProperty('--size',size+'px');coin.style.setProperty('--drift',drift+'px');coin.style.animationDelay=(i*70)+'ms';layer.appendChild(coin);coin.addEventListener('animationend',()=>coin.remove(),{once:true})})}
+document.getElementById('toggle').onclick=()=>{if(!enabled&&localStorage.getItem(prefsKey+':permissionGuideCompleted')!=='1'){openPermissionGuide(true);return}enabled=!enabled;document.getElementById('toggle').classList.toggle('on',enabled);document.getElementById('toggle').classList.toggle('off',!enabled);document.getElementById('heroTitle').textContent=enabled?'已为你开启':'自动打卡已暂停';document.getElementById('heroSub').textContent=enabled?'下一次检查 · '+prefs.times.start+' 公司范围':'已暂停所有自动安排';if(window.AndroidBridge)AndroidBridge.setEnabled(enabled)};
+function setLocation(){if(window.AndroidBridge){document.getElementById('tag').textContent='⌖ 正在获取位置…';AndroidBridge.setOfficeLocation();return}document.getElementById('tag').textContent='⌖ 正在获取位置…';setTimeout(()=>{document.getElementById('tag').textContent='⌖ 位置已更新';toast('Demo：公司位置已更新')},700)}
+const permissionSteps=[
+ {key:'office',title:'设置公司打卡位置',text:'在公司附近保存位置，作为 300 米打卡范围的中心。',action:'office',required:true},
+ {key:'backgroundLocationPermission',title:'允许始终访问位置',text:'应用权限中选择“始终允许”，并打开“使用精确位置”。',action:'location',required:true},
+ {key:'notificationPermission',title:'允许通知（锁屏提醒需要）',text:'不影响定时打卡；若要手机锁屏时响铃、震动并显示解锁提示，请开启。',action:'notifications',required:false,group:'lock'},
+ {key:'fullScreenPermission',title:'允许全屏提醒（锁屏提醒需要）',text:'Android 14 及以上可能需要单独允许；不开启时锁屏提醒可能无法自动弹出。',action:'fullscreen',required:false,group:'lock'},
+ {key:'exactAlarmPermission',title:'允许精确闹钟',text:'保障午间和下班时段按设定时间触发。',action:'alarm',required:true},
+ {key:'accessibilityPermission',title:'开启自动打开服务',text:'启用“工力全开自动打卡服务”，用于先清理企业微信后台再打开。',action:'accessibility',required:true},
+ {key:'batteryPermission',title:'允许后台运行（建议）',text:'将电池使用设为“不受限制”，并按手机品牌开启自启动。',action:'battery',required:false}
+];
+function updatePermissionGuide(state={}){const list=document.getElementById('guideSteps');if(!list)return;guideState=state;const complete=s=>s.key==='office'?!!(state.locationSet&&state.locationPermission):!!state[s.key];const required=permissionSteps.filter(s=>s.required),done=required.filter(complete).length,homeCard=document.getElementById('homePermissionCard');if(homeCard)homeCard.style.display=done===required.length?'none':'block';document.getElementById('guideProgress').style.width=(done/required.length*100)+'%';document.getElementById('guideCount').textContent=`必要步骤 ${done}/${required.length} 已完成 · 后台运行建议设置`;const finish=document.getElementById('guideFinish');finish.disabled=pendingEnable&&done<required.length;finish.textContent=pendingEnable?(done===required.length?'完成设置并开启自动打卡':`还需完成 ${required.length-done} 项必要设置`):'完成';list.innerHTML=permissionSteps.map((s,i)=>{const ok=complete(s),status=ok?'已完成':s.required?'待设置':s.group==='lock'?'锁屏功能需要':'建议设置',button=ok?(s.key==='office'?'重新设置位置':'已完成'):s.action==='office'?'设置公司位置':s.action==='location'?'设置定位权限':s.action==='notifications'?'设置通知':s.action==='fullscreen'?'设置锁屏提醒':s.action==='alarm'?'设置精确闹钟':s.action==='accessibility'?'开启自动打开服务':'设置后台运行';return `<div class="guide-step ${ok?'done':''}"><span class="guide-number">${ok?'✓':i+1}</span><div class="guide-copy"><div class="guide-step-title"><span>${s.title}</span><span class="guide-state">${status}</span></div><p>${s.text}</p><button class="guide-action" ${ok&&s.key!=='office'?'disabled':''} onclick="runPermissionStep('${s.action}')">${button}</button></div></div>`}).join('')}
+function openPermissionGuide(forEnable=false){pendingEnable=forEnable;let state={};if(window.AndroidBridge){try{state=JSON.parse(AndroidBridge.getAppState())}catch(_){}}updatePermissionGuide(state);document.getElementById('permissionGuide').classList.add('show')}
+function finishPermissionGuide(){if(pendingEnable){const complete=s=>s.key==='office'?!!(guideState.locationSet&&guideState.locationPermission):!!guideState[s.key],required=permissionSteps.filter(s=>s.required);if(!required.every(complete)){toast('请先完成全部必要权限');return}localStorage.setItem(prefsKey+':permissionGuideCompleted','1');enabled=true;document.getElementById('toggle').classList.add('on');document.getElementById('toggle').classList.remove('off');document.getElementById('heroTitle').textContent='已为你开启';document.getElementById('heroSub').textContent='下一次检查 · '+prefs.times.start+' 公司范围';if(window.AndroidBridge)AndroidBridge.setEnabled(true);toast('权限已完成，自动打卡已开启')}closePermissionGuide();pendingEnable=false}
+function closePermissionGuide(){document.getElementById('permissionGuide').classList.remove('show');pendingEnable=false}
+function runPermissionStep(action){if(!window.AndroidBridge){toast('请在安卓客户端完成系统权限设置');return}if(action==='office')setLocation();else if(action==='location')AndroidBridge.openLocationSettings();else if(action==='notifications')AndroidBridge.openNotificationSettings();else if(action==='fullscreen')AndroidBridge.openFullScreenPermissionSettings();else if(action==='alarm')AndroidBridge.openExactAlarmPermissionSettings();else if(action==='accessibility')AndroidBridge.openAccessibilityPermissionSettings();else if(action==='battery')AndroidBridge.openBatteryPermissionSettings()}
+function monday(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());x.setDate(x.getDate()-((x.getDay()+6)%7));x.setHours(0,0,0,0);return x}
+function dateKey(d){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
+function weekRest(d){const anchor=prefs.anchorMonday||dateKey(monday(new Date()));const a=new Date(anchor+'T00:00:00'),b=monday(d);const w=Math.floor((b-a)/604800000);return (w%2===0)?prefs.anchorDoubleRest!==false:prefs.anchorDoubleRest===false}
+function setThisWeek(doubleRest){prefs.anchorMonday=dateKey(monday(new Date()));prefs.anchorDoubleRest=doubleRest;prefs.doubleRest=doubleRest;savePrefs();updateWeekLabels();refreshEarnings();if(window.AndroidBridge)AndroidBridge.setThisWeekDoubleRest(doubleRest);toast('已设置本周，后续单双周自动交替')}
+function isWorkday(d){const day=d.getDay();if(day===0)return false;if(day!==6)return true;return prefs.cycle==='single'||(prefs.cycle==='alternating'&&!weekRest(d))}
+function updateWeekLabels(){const today=new Date(),rest=prefs.cycle==='double'?true:prefs.cycle==='single'?false:weekRest(today),nextDate=new Date(monday(today).getTime()+604800000),nextRest=weekRest(nextDate),summary=prefs.cycle==='alternating'?'大小周自动交替':prefs.cycle==='double'?'固定双休':'固定单休';document.getElementById('cycleSummary').textContent=summary;document.getElementById('weekTitle').textContent='本周 · '+(rest?'双休':'单休');document.getElementById('weekCopy').textContent=prefs.cycle==='alternating'?'下周自动'+(nextRest?'双休':'单休')+(nextRest?' · 周末休息':' · 周六上班'):rest?'每周六、周日休息':'每周周六上班 · 周日休息';document.getElementById('doubleWeek').classList.toggle('selected',rest);document.getElementById('bigWeek').classList.toggle('selected',!rest);document.getElementById('nextWeekType').textContent=nextRest?'双休':'单休';document.getElementById('alternatingSettings').style.display=prefs.cycle==='alternating'?'block':'none';document.querySelectorAll('#cycleChoices button').forEach(b=>b.classList.toggle('selected',b.dataset.cycle===prefs.cycle))}
+function salarySave(){prefs.salary=document.getElementById('salaryInput').value;savePrefs();if(window.AndroidBridge)AndroidBridge.setSalary(prefs.salary);refreshEarnings();toast('月薪已保存')}
+function setCycle(cycle){prefs.cycle=cycle;savePrefs();if(window.AndroidBridge)AndroidBridge.setCycle(cycle);updateWeekLabels();refreshEarnings()}
+function showTime(id,key){const value=prefs.times[key];document.getElementById(id).value=value;document.getElementById(({start:'morningTime',lunchStart:'lunchStartTime',lunchEnd:'lunchEndTime',end:'workEndTime'}[key])).textContent=value}
+function saveSettings(){const times={start:document.getElementById('workStart').value,lunchStart:document.getElementById('lunchStart').value,lunchEnd:document.getElementById('lunchEnd').value,end:document.getElementById('workEnd').value};if(!times.start||!times.lunchStart||!times.lunchEnd||!times.end||times.start>=times.lunchStart||times.lunchStart>=times.lunchEnd||times.lunchEnd>=times.end){toast('请按上班、午休、下班顺序设置时间');return}prefs.times=times;savePrefs();if(window.AndroidBridge)AndroidBridge.saveTimes(times.start,times.lunchStart,times.lunchEnd,times.end);[['start','workStart'],['lunchStart','lunchStart'],['lunchEnd','lunchEnd'],['end','workEnd']].forEach(([k,id])=>showTime(id,k));document.getElementById('heroSub').textContent='下一次检查 · '+times.start+' 公司范围';refreshEarnings();toast('工作时间已保存')}
+function setTheme(){const [accent,ink,soft,strong]=honeyTheme;prefs.theme='honey';savePrefs();const root=document.documentElement;root.style.setProperty('--accent',accent);root.style.setProperty('--accent-ink',ink);root.style.setProperty('--accent-soft',soft);root.style.setProperty('--accent-strong',strong);root.style.setProperty('--accent-fg','#4b3919')}
+function hm(s){const [h,m]=s.split(':').map(Number);return h*60+m}
+function workSeconds(now){if(!isWorkday(now))return 0;const mins=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;const a=hm(prefs.times.start),b=hm(prefs.times.lunchStart),c=hm(prefs.times.lunchEnd),d=hm(prefs.times.end);return Math.max(0,Math.min(mins,b)-a)*60+Math.max(0,Math.min(mins,d)-c)*60}
+function refreshEarnings(){const salary=Number(prefs.salary)||0,weeklyDays=prefs.cycle==='double'?5:prefs.cycle==='single'?6:5.5,monthlyDays=weeklyDays*365.2425/7/12,workMins=hm(prefs.times.lunchStart)-hm(prefs.times.start)+hm(prefs.times.end)-hm(prefs.times.lunchEnd),perSecond=workMins>0?salary/(monthlyDays*workMins*60):0,now=new Date(),elapsed=workSeconds(now),daily=salary/monthlyDays,earned=daily*(workMins>0?elapsed/(workMins*60):0),fraction=workMins>0?Math.min(1,elapsed/(workMins*60)):0;
+const display=salary?'¥'+earned.toFixed(2):'¥—',earnedNode=document.getElementById('earned');if(display!==lastEarnedDisplay){earnedNode.textContent=display;if(lastEarnedDisplay!==null&&salary&&document.getElementById('salaryPage').classList.contains('active'))syncCoinTick();lastEarnedDisplay=display}document.getElementById('rate').textContent=salary?'¥'+perSecond.toFixed(4)+' / 秒':'¥— / 秒';document.getElementById('progress').style.width=(fraction*100)+'%';document.getElementById('elapsed').textContent='今日工时 '+Math.floor(elapsed/60)+' 分钟';const end=hm(prefs.times.end),nowMin=now.getHours()*60+now.getMinutes();document.getElementById('remaining').textContent=nowMin<end?'距离下班 '+Math.floor((end-nowMin)/60)+' 小时 '+((end-nowMin)%60)+' 分':'今日工时完成';document.getElementById('workState').textContent=!salary?'输入月薪后开始计算':!isWorkday(now)?'今天是休息日 · 收入暂停':elapsed===0&&nowMin<hm(prefs.times.start)?'还未到上班时间 · 收入暂停':nowMin>=end?'已下班 · 今日累计完成':nowMin>=hm(prefs.times.lunchStart)&&nowMin<hm(prefs.times.lunchEnd)?'午休中 · 收入暂停':'上班中 · 收入实时累计'}
+function applyNativeState(state){if(!state)return;enabled=!!state.enabled;prefs.salary=String(state.salary||'');prefs.cycle=state.cycle||prefs.cycle;prefs.times={start:state.start,lunchStart:state.lunchStart,lunchEnd:state.lunchEnd,end:state.end};prefs.anchorMonday=dateKey(monday(new Date()));prefs.anchorDoubleRest=!!state.anchorDoubleRest;savePrefs();const toggle=document.getElementById('toggle');toggle.classList.toggle('on',enabled);toggle.classList.toggle('off',!enabled);document.getElementById('heroTitle').textContent=enabled?'已为你开启':'已暂停';document.getElementById('heroSub').textContent=enabled?'下一次检查 · '+prefs.times.start+' 公司范围':'已暂停所有自动安排';document.getElementById('tag').textContent=state.locationSet?'⌖ 位置已设置':'⌖ 尚未设置位置';document.getElementById('salaryInput').value=prefs.salary;[['start','workStart'],['lunchStart','lunchStart'],['lunchEnd','lunchEnd'],['end','workEnd']].forEach(([key,id])=>showTime(id,key));updateWeekLabels();refreshEarnings();updatePermissionGuide(state)}
+document.getElementById('salaryInput').addEventListener('input',()=>{prefs.salary=document.getElementById('salaryInput').value;savePrefs();if(window.AndroidBridge)AndroidBridge.setSalary(prefs.salary);refreshEarnings()});
+document.getElementById('salaryInput').value=prefs.salary||'';[['start','workStart'],['lunchStart','lunchStart'],['lunchEnd','lunchEnd'],['end','workEnd']].forEach(([k,id])=>showTime(id,k));updateWeekLabels();setTheme();refreshEarnings();setInterval(refreshEarnings,1000);if(window.AndroidBridge)applyNativeState(JSON.parse(AndroidBridge.getAppState()));
+</script>
+</body></html>
+
+
+

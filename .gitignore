@@ -15,3 +15,7 @@ output/*.err
 output/ui-fix-validation.json
 *.jks
 *.keystore
+
+.gradle-8.9-bin.zip
+gongli-quankai-logo.zip
+output/

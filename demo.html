@@ -176,7 +176,7 @@ body.android-app{padding:0}
 .checkin-zone{--collapse:0}
 .checkin-zone:before,.honey-splash,.checkin-zone .date{opacity:calc(1 - var(--collapse));transition:opacity .04s linear}
 .checkin-zone:after{content:"";position:absolute;z-index:-1;top:0;left:0;width:100%;height:32px;background:#f5d11b}
-.home-scroll{position:absolute;z-index:2;top:32px;right:0;bottom:0;left:0;margin:0;padding:var(--header-overlap) 20px 112px;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:none;background:transparent}
+.home-scroll{position:absolute;z-index:2;top:0;right:0;bottom:0;left:0;margin:0;padding:calc(var(--header-overlap) + 32px) 20px 112px;overflow-y:auto;overscroll-behavior-y:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;touch-action:pan-y;background:transparent}
 .android-app #homePage:before{content:"";position:fixed;z-index:6;top:0;left:0;right:0;height:32px;background:#f5d11b;pointer-events:none}
 </style>
 </head>
@@ -272,7 +272,7 @@ document.getElementById('salaryInput').addEventListener('input',()=>{prefs.salar
 document.getElementById('salaryInput').value=prefs.salary||'';[['start','workStart'],['lunchStart','lunchStart'],['lunchEnd','lunchEnd'],['end','workEnd']].forEach(([k,id])=>showTime(id,k));updateWeekLabels();setTheme();refreshEarnings();setInterval(refreshEarnings,1000);if(window.AndroidBridge)applyNativeState(JSON.parse(AndroidBridge.getAppState()));
 const homeScroller=document.getElementById('homeScroll'),stickyHeader=document.querySelector('.checkin-zone');let collapseStart=0,collapseEnd=1;
 function updateHeaderCollapse(){if(!homeScroller||!stickyHeader)return;const progress=Math.min(1,Math.max(0,(homeScroller.scrollTop-collapseStart)/(collapseEnd-collapseStart)));stickyHeader.style.setProperty('--collapse',progress.toFixed(3))}
-function measureHeaderCollapse(){if(!homeScroller)return;const card=homeScroller.querySelector('.hero'),title=document.querySelector('.checkin-zone .date');if(!card||!title)return;const firstTop=card.getBoundingClientRect().top,statusEdge=32;collapseStart=Math.max(0,firstTop-title.getBoundingClientRect().bottom-80);collapseEnd=Math.max(collapseStart+1,firstTop-statusEdge);updateHeaderCollapse()}
+function measureHeaderCollapse(){if(!homeScroller)return;const card=homeScroller.querySelector('.hero'),title=document.querySelector('.checkin-zone .date');if(!card||!title)return;const firstTop=card.getBoundingClientRect().top,statusEdge=0;collapseStart=Math.max(0,firstTop-title.getBoundingClientRect().bottom-80);collapseEnd=Math.max(collapseStart+1,firstTop-statusEdge);updateHeaderCollapse()}
 homeScroller.addEventListener('scroll',updateHeaderCollapse,{passive:true});window.addEventListener('resize',measureHeaderCollapse);requestAnimationFrame(measureHeaderCollapse);
 </script>
 </body></html>

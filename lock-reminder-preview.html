@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>锁屏提醒视觉预览</title>
+  <style>
+    :root { color-scheme: light; background: #F8CB46; }
+    * { box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #F8CB46; }
+    canvas { display: block; width: 100%; height: 100%; touch-action: pan-y; }
+  </style>
+</head>
+<body>
+  <canvas id="preview" aria-label="打卡时间到了，滑动解锁"></canvas>
+  <script>
+    const canvas = document.getElementById('preview');
+    const ctx = canvas.getContext('2d');
+    const beamCanvas = document.createElement('canvas');
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const colors = { bg: '#F8CB46', title: '#2D2D2D', hint: '#665A34', shine: '#FFF4D0' };
+    const dp = v => v * dpr;
+    const title = '打卡时间到了！';
+    const hint = '滑动解锁';
+    let safeTop = 0, safeBottom = 0, startAt = 0, offsetX = 0;
+    let drag = null, spring = null;
+
+    function resize() {
+      const r = canvas.getBoundingClientRect();
+      canvas.width = Math.round(r.width * dpr);
+      canvas.height = Math.round(r.height * dpr);
+      beamCanvas.width = canvas.width;
+      beamCanvas.height = canvas.height;
+      // Browser preview reserves the same conservative content margins as a gesture-navigation screen.
+      safeTop = dp(24);
+      safeBottom = dp(24);
+      draw(performance.now());
+    }
+
+    function roundedTextSize(text, maxWidth, initial, weight, family) {
+      let size = initial;
+      ctx.font = `${weight} ${size}px ${family}`;
+      while (ctx.measureText(text).width > maxWidth && size > dp(18)) {
+        size -= dp(1);
+        ctx.font = `${weight} ${size}px ${family}`;
+      }
+      return size;
+    }
+
+    function draw(now) {
+      const w = canvas.width, h = canvas.height;
+      if (!drag && spring) {
+        const t = Math.min(1, (now - spring.at) / 200);
+        offsetX = spring.from * (1 - t);
+        if (t >= 1) { offsetX = 0; spring = null; }
+      }
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = colors.bg;
+      ctx.fillRect(0, 0, w, h);
+      const safeH = h - safeTop - safeBottom;
+      const titleSize = roundedTextSize(title, w - dp(56), dp(32), '800', 'sans-serif');
+      ctx.save();
+      ctx.translate(offsetX, 0);
+      ctx.fillStyle = colors.title;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = `800 ${titleSize}px sans-serif`;
+      ctx.fillText(title, w / 2, safeTop + safeH * .46, w - dp(56));
+
+      const hintSize = roundedTextSize(hint, w - dp(100), dp(18), '500', 'sans-serif');
+      ctx.font = `500 ${hintSize}px sans-serif`;
+      const textW = ctx.measureText(hint).width;
+      const iconW = dp(7), iconH = dp(14), iconGap = dp(4), textGap = dp(8);
+      const iconGroupW = iconW * 3 + iconGap * 2;
+      const totalW = iconGroupW + textGap + textW;
+      const left = (w - totalW) / 2;
+      const cy = h - safeBottom - dp(76);
+      const top = cy - iconH / 2;
+      ctx.strokeStyle = colors.hint;
+      ctx.lineWidth = dp(1.8);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      for (let i = 0; i < 3; i++) {
+        const x = left + i * (iconW + iconGap);
+        ctx.beginPath();
+        ctx.moveTo(x, top);
+        ctx.lineTo(x + iconW, cy);
+        ctx.lineTo(x, top + iconH);
+        ctx.stroke();
+      }
+      ctx.fillStyle = colors.hint;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(hint, left + iconGroupW + textGap, cy);
+
+      const elapsed = now - startAt - 500;
+      const phase = ((elapsed % 3000) + 3000) % 3000;
+      if (elapsed >= 0 && phase < 1200) {
+        const bandW = dp(20), bend = dp(6);
+        const bandLeft = left - bandW + (totalW + bandW * 2) * (phase / 1200);
+        const b = beamCanvas.getContext('2d');
+        b.clearRect(0, 0, w, h);
+        b.fillStyle = colors.shine;
+        b.beginPath();
+        b.moveTo(bandLeft, cy - hintSize * .65);
+        b.quadraticCurveTo(bandLeft + bend, cy, bandLeft, cy + hintSize * .65);
+        b.lineTo(bandLeft + bandW, cy + hintSize * .65);
+        b.quadraticCurveTo(bandLeft + bandW - bend, cy, bandLeft + bandW, cy - hintSize * .65);
+        b.closePath(); b.fill();
+        b.globalCompositeOperation = 'destination-in';
+        b.strokeStyle = '#fff'; b.lineWidth = dp(1.8); b.lineCap = 'round'; b.lineJoin = 'round';
+        for (let i = 0; i < 3; i++) {
+          const x = left + i * (iconW + iconGap);
+          b.beginPath(); b.moveTo(x, top); b.lineTo(x + iconW, cy); b.lineTo(x, top + iconH); b.stroke();
+        }
+        b.fillStyle = '#fff'; b.font = `500 ${hintSize}px sans-serif`; b.textAlign = 'left'; b.textBaseline = 'middle';
+        b.fillText(hint, left + iconGroupW + textGap, cy);
+        ctx.drawImage(beamCanvas, 0, 0);
+      }
+      ctx.restore();
+      requestAnimationFrame(draw);
+    }
+
+    canvas.addEventListener('pointerdown', e => { if (e.button !== 0) return; spring = null; drag = { x: e.clientX, y: e.clientY, id: e.pointerId }; canvas.setPointerCapture(e.pointerId); });
+    canvas.addEventListener('pointermove', e => { if (!drag || drag.id !== e.pointerId) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (dx > 0 && dx > Math.abs(dy) * 1.5) offsetX = dp(Math.min(dx, 120)); });
+    canvas.addEventListener('pointerup', () => { spring = { from: offsetX, at: performance.now() }; drag = null; });
+    canvas.addEventListener('pointercancel', () => { spring = { from: offsetX, at: performance.now() }; drag = null; });
+    window.addEventListener('resize', resize);
+    startAt = performance.now();
+    resize();
+  </script>
+</body>
+</html>

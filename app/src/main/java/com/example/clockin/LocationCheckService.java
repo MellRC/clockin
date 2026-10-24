@@ -1,137 +1,107 @@
 package com.example.clockin;
 
 import android.Manifest;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.Service;
-import android.content.Intent;
+import android.app.*;
+import android.content.*;
 import android.content.pm.PackageManager;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
-import android.os.Build;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Looper;
-
+import android.location.*;
+import android.os.*;
 import java.time.LocalDate;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.*;
 
+/** Bounded, shared location acquisition. Repeated starts merge jobs instead of overwriting them. */
 public class LocationCheckService extends Service {
-    private static final String CHANNEL = "location_check";
-    private final AtomicBoolean finished = new AtomicBoolean(false);
-    private LocationManager locationManager;
+    private static final String CHANNEL = "location_check_v2";
+    private final Map<Long, Integer> arrivals = new HashMap<>();
+    private final Set<String> checks = new HashSet<>();
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private LocationManager manager;
     private LocationListener listener;
-    private Handler handler;
-    private LocalDate date;
-    private int attempt;
+    private boolean running, finishing;
+    private String startedSignature;
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        handler = new Handler(Looper.getMainLooper());
-        createChannel();
+    static void checkTask(Context c, String task, long day) {
+        if (!OfficeLocation.isSet(c) || !AttendanceRules.isEnabled(c)
+                || c.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ReminderFlow.locationReady(c, task); return;
+        }
+        Intent i = new Intent(c, LocationCheckService.class).putExtra("check_task", task)
+                .putExtra(AlarmScheduler.EXTRA_DAY, day);
+        try { c.startForegroundService(i); }
+        catch (RuntimeException e) { ReminderFlow.locationReady(c, task); }
     }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        date = LocalDate.ofEpochDay(intent == null
-                ? LocalDate.now().toEpochDay()
-                : intent.getLongExtra(AlarmScheduler.EXTRA_DAY, LocalDate.now().toEpochDay()));
-        attempt = intent == null ? 0 : intent.getIntExtra("attempt", 0);
-        startForeground(4102, buildNotification());
-
-        if (!OfficeLocation.isSet(this)
-                || checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            finish(false);
-            ReminderNotifications.show(this, "需要设置公司位置", "请打开打卡应用并授权精确定位。", true);
+    @Override public int onStartCommand(Intent intent, int flags, int startId) {
+        if (finishing) { finishing = false; running = false; arrivals.clear(); checks.clear(); }
+        android.util.Log.i("AttendanceReminder", "location service startId=" + startId
+                + " enabled=" + AttendanceRules.isEnabled(this));
+        // Honor the foreground-start contract before any disabled/expired early return.
+        NotificationManager nm = getSystemService(NotificationManager.class);
+        NotificationChannel channel = new NotificationChannel(CHANNEL, "位置检查", NotificationManager.IMPORTANCE_LOW);
+        channel.setSound(null, null); channel.enableVibration(false); nm.createNotificationChannel(channel);
+        try {
+            startForeground(4102, new Notification.Builder(this, CHANNEL)
+                    .setSmallIcon(android.R.drawable.ic_menu_mylocation).setContentTitle("正在检查公司位置")
+                    .setContentText("仅在上班有效区间内检查，单次最多 18 秒。")
+                    .setOnlyAlertOnce(true).setOngoing(true).build());
+        } catch (RuntimeException e) { finish(false); return START_NOT_STICKY; }
+        if (intent == null || !AttendanceRules.isEnabled(this)) { finish(false); return START_NOT_STICKY; }
+        long day = intent.getLongExtra(AlarmScheduler.EXTRA_DAY, LocalDate.now().toEpochDay());
+        ReminderFlow.Window w = ReminderFlow.window(this, AlarmScheduler.ARRIVAL, LocalDate.ofEpochDay(day));
+        if (!TaskPolicy.within(System.currentTimeMillis(), w.start, w.end)) {
+            if (!running) finish(false);
             return START_NOT_STICKY;
         }
-
-        locationManager = getSystemService(LocationManager.class);
+        String task = intent.getStringExtra("check_task");
+        if (task != null) checks.add(task);
+        else arrivals.put(day, intent.getIntExtra("attempt", 0));
+        if (running) return START_NOT_STICKY;
+        running = true;
+        startedSignature = AlarmScheduler.signature(this);
+        if (!OfficeLocation.isSet(this) || checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) { finish(false); return START_NOT_STICKY; }
+        manager = getSystemService(LocationManager.class);
         listener = location -> {
-            if (finished.get()) return;
-            java.time.LocalTime start = WorkConfig.start(LocationCheckService.this);
-            boolean withinWindow = LocalDate.now().equals(date)
-                    && !java.time.LocalTime.now().isBefore(start)
-                    && !java.time.LocalTime.now().isAfter(start.plusMinutes(60));
-            if (withinWindow && OfficeLocation.contains(this, location)) {
-                finish(true);
-            } else if (System.currentTimeMillis() - location.getTime() < 20_000L) {
-                // Keep checking until the location request times out.
-            }
+            if (!AttendanceRules.isEnabled(this)) { finish(false); return; }
+            OfficeLocation.observed(location);
+            if (OfficeLocation.currentInside(this)) finish(true);
         };
-
         boolean requested = false;
         try {
-            if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                        1000L, 0f, listener, Looper.getMainLooper());
-                requested = true;
+            for (String p : new String[]{LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER}) {
+                if (manager != null && manager.isProviderEnabled(p)) {
+                    manager.requestLocationUpdates(p, 1000, 0, listener, Looper.getMainLooper());
+                    requested = true;
+                }
             }
-            if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
-                        1000L, 0f, listener, Looper.getMainLooper());
-                requested = true;
-            }
-        } catch (SecurityException ignored) {
-            requested = false;
-        }
-        if (!requested) {
-            finish(false);
-        } else {
-            handler.postDelayed(() -> finish(false), 18_000L);
-        }
+        } catch (RuntimeException ignored) { }
+        if (!requested) finish(false);
+        else handler.postDelayed(() -> finish(false), Math.min(18_000, Math.max(1, w.end - System.currentTimeMillis())));
         return START_NOT_STICKY;
     }
-
-    private void finish(boolean arrived) {
-        if (!finished.compareAndSet(false, true)) return;
-        if (handler != null) handler.removeCallbacksAndMessages(null);
-        if (locationManager != null && listener != null) {
-            try { locationManager.removeUpdates(listener); } catch (SecurityException ignored) { }
-        }
-        if (arrived) {
-            if (ReminderNotifications.shouldShowLockedReminder(this)) {
-                ReminderNotifications.showLockedAttendanceReminder(this, AlarmScheduler.ARRIVAL,
-                        date.toEpochDay());
-            } else {
-                TriggerActivity.open(this, AlarmScheduler.ARRIVAL, date.toEpochDay(), false);
-            }
-        } else {
-            AlarmScheduler.retryArrival(this, date, attempt + 1);
+    private void finish(boolean inside) {
+        if (finishing) return;
+        finishing = true;
+        android.util.Log.i("AttendanceReminder", "location service finished inside=" + inside
+                + " pendingTasks=" + checks.size());
+        cleanup();
+        for (String id : checks) ReminderFlow.locationReady(this, id);
+        if (AttendanceRules.isEnabled(this) && AlarmScheduler.signature(this).equals(startedSignature)) for (Map.Entry<Long,Integer> entry : arrivals.entrySet()) {
+            if (inside) ReminderFlow.triggered(this, AlarmScheduler.ARRIVAL, entry.getKey());
+            else AlarmScheduler.retryArrival(this, LocalDate.ofEpochDay(entry.getKey()), entry.getValue() + 1);
         }
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();
     }
-
-    private void createChannel() {
-        if (Build.VERSION.SDK_INT < 26) return;
-        NotificationChannel channel = new NotificationChannel(CHANNEL, "位置检查",
-                NotificationManager.IMPORTANCE_LOW);
-        getSystemService(NotificationManager.class).createNotificationChannel(channel);
-    }
-
-    private Notification buildNotification() {
-        Notification.Builder builder = Build.VERSION.SDK_INT >= 26
-                ? new Notification.Builder(this, CHANNEL) : new Notification.Builder(this);
-        return builder.setSmallIcon(android.R.drawable.ic_menu_mylocation)
-                .setContentTitle("正在检查公司位置")
-                .setContentText("仅在工作日早上 7:30 到 8:30 检查。")
-                .setOngoing(true).build();
-    }
-
-    @Override
-    public void onDestroy() {
-        if (handler != null) handler.removeCallbacksAndMessages(null);
-        if (locationManager != null && listener != null) {
-            try { locationManager.removeUpdates(listener); } catch (SecurityException ignored) { }
+    private void cleanup() {
+        handler.removeCallbacksAndMessages(null);
+        if (manager != null && listener != null) {
+            try { manager.removeUpdates(listener); } catch (RuntimeException ignored) { }
         }
+    }
+    @Override public void onDestroy() {
+        cleanup();
+        if (!finishing) for (String id : checks) ReminderFlow.locationReady(this, id);
         super.onDestroy();
     }
-
-    @Override
-    public IBinder onBind(Intent intent) { return null; }
+    @Override public IBinder onBind(Intent intent) { return null; }
 }

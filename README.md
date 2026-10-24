@@ -1,48 +1,25 @@
 # 工力全开
 
-一个 Android 自动打卡助手 Demo。
+![首页](docs/home.png)
 
-## 功能
+安卓打卡提醒。到了设定时间，在公司范围内提醒你打开企业微信。数据只存在本机，应用没有网络权限。
 
-- 公司位置范围打卡。
-- 上班、午休、下班自动打开企业微信。
-- 定时任务和位置触发。
-- 大小周、单休、双休排班。
-- 实时工资估算。
-- 锁屏提醒和权限分步引导。
-- WebView Demo 与 APK 使用同一份页面资源。
+打开企业微信不代表已经打卡。自动结果识别还没做，需要你自己核对。
 
-## 项目结构
+## 能做什么
 
-- `app/` Android 工程和原生能力。
-- `demo.html` 可直接预览的界面 Demo。
-- `app/src/main/assets/demo.html` APK 内置页面。
-- `output/` 本地构建产物和验证文件。
+- 四个时段：上班、午间下班、午间上班、下班
+- 上班、午间上班、下班的有效窗口是 60 分钟；午间下班覆盖整个午休
+- 大小周、固定双休、固定单休
+- 提醒模式会亮屏震动；静默模式只留通知
+- 打开应用时，还在有效时间内且这次还没开始的时段会补一次
 
 ## 构建
 
-```powershell
-./.gradle-toolchain/gradle-8.9/bin/gradle.bat --offline --no-daemon :app:assembleDebug
+需要 JDK 17、Android SDK（compileSdk 35）和 Gradle 8.9。
+
+```
+gradle :app:assembleDebug
 ```
 
-生成文件：`app/build/outputs/apk/debug/app-debug.apk`
-
-## 安装
-
-```powershell
-adb install -r app/build/outputs/apk/debug/app-debug.apk
-```
-
-首次使用需要按引导授予定位、通知、精确闹钟、无障碍和后台运行权限。
-
-## 环境
-
-- Android SDK 35。
-- Android Gradle Plugin 8.7.3。
-- Gradle 8.9。
-- JDK 17。
-- 最低 Android 版本：26。
-
-## 说明
-
-这是个人项目和界面 Demo。自动打卡功能依赖系统权限以及企业微信客户端状态。
+安装包在 `app/build/outputs/apk/debug/`。

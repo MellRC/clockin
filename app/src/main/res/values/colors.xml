@@ -1,3 +1,7 @@
 <resources>
     <color name="brand_warm_yellow">#F5D11B</color>
+    <color name="lock_reminder_yellow">#F8CB46</color>
+    <color name="lock_reminder_title">#2D2D2D</color>
+    <color name="lock_reminder_hint">#665A34</color>
+    <color name="lock_reminder_sweep">#FFF4D0</color>
 </resources>

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844">
+  <defs>
+    <clipPath id="hintInk">
+      <g fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M141 737 L148 744 L141 751 M152 737 L159 744 L152 751 M163 737 L170 744 L163 751"/>
+      </g>
+      <text x="178" y="750" fill="#fff" font-family="sans-serif" font-size="18" font-weight="500">滑动解锁</text>
+    </clipPath>
+  </defs>
+  <rect width="390" height="844" fill="#F8CB46"/>
+  <text x="195" y="390" text-anchor="middle" dominant-baseline="middle"
+        fill="#2D2D2D" font-family="sans-serif" font-size="32" font-weight="800">打卡时间到了！</text>
+  <g fill="none" stroke="#665A34" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M141 737 L148 744 L141 751 M152 737 L159 744 L152 751 M163 737 L170 744 L163 751"/>
+  </g>
+  <text x="178" y="750" fill="#665A34" font-family="sans-serif" font-size="18" font-weight="500">滑动解锁</text>
+  <path d="M239 727 Q245 744 239 761 L259 761 Q253 744 259 727 Z" fill="#FFF4D0" clip-path="url(#hintInk)"/>
+</svg>

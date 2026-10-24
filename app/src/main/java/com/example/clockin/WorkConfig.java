@@ -22,20 +22,20 @@ public final class WorkConfig {
     public static String cycle(Context c) { return prefs(c).getString("cycle", "alternating"); }
     public static String theme(Context c) { return prefs(c).getString("theme", "honey"); }
 
-    public static void setTimes(Context c, LocalTime start, LocalTime lunchStart,
+    public static boolean setTimes(Context c, LocalTime start, LocalTime lunchStart,
                                 LocalTime lunchEnd, LocalTime end) {
-        prefs(c).edit().putString("start", start.toString())
+        return prefs(c).edit().putString("start", start.toString())
                 .putString("lunch_start", lunchStart.toString())
                 .putString("lunch_end", lunchEnd.toString())
-                .putString("end", end.toString()).apply();
+                .putString("end", end.toString()).commit();
     }
 
-    public static void setSalary(Context c, double salary, String cycle) {
-        prefs(c).edit().putLong("salary_bits", Double.doubleToLongBits(salary))
-                .putString("cycle", cycle).apply();
+    public static boolean setSalary(Context c, double salary, String cycle) {
+        return prefs(c).edit().putLong("salary_bits", Double.doubleToLongBits(salary))
+                .putString("cycle", cycle).commit();
     }
 
-    public static void setTheme(Context c, String theme) {
-        prefs(c).edit().putString("theme", theme).apply();
+    public static boolean setTheme(Context c, String theme) {
+        return prefs(c).edit().putString("theme", theme).commit();
     }
 }

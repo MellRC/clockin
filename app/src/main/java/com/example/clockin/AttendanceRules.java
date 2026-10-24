@@ -12,6 +12,7 @@ public final class AttendanceRules {
     private static final String KEY_ANCHOR_MONDAY = "anchor_monday";
     private static final String KEY_ANCHOR_DOUBLE_REST = "anchor_double_rest";
     private static final String KEY_ENABLED = "enabled";
+    private static final String KEY_REMINDER_MODE = "reminder_mode";
 
     private AttendanceRules() {}
 
@@ -36,6 +37,17 @@ public final class AttendanceRules {
         prefs(context).edit().putBoolean(KEY_ENABLED, enabled).apply();
     }
 
+    public static String reminderMode(Context context) {
+        String mode = prefs(context).getString(KEY_REMINDER_MODE, ReminderFlow.MODE_REMINDER);
+        return ReminderFlow.MODE_SILENT.equals(mode) ? ReminderFlow.MODE_SILENT : ReminderFlow.MODE_REMINDER;
+    }
+
+    public static boolean setReminderMode(Context context, String mode) {
+        String value = ReminderFlow.MODE_SILENT.equals(mode)
+                ? ReminderFlow.MODE_SILENT : ReminderFlow.MODE_REMINDER;
+        return prefs(context).edit().putString(KEY_REMINDER_MODE, value).commit();
+    }
+
     public static boolean isWorkday(Context context, LocalDate date) {
         DayOfWeek day = date.getDayOfWeek();
         if (day != DayOfWeek.SATURDAY && day != DayOfWeek.SUNDAY) return true;
@@ -55,10 +67,10 @@ public final class AttendanceRules {
         return (Math.floorMod(weekIndex, 2L) == 0L) == anchorDoubleRest;
     }
 
-    public static void setThisWeekDoubleRest(Context context, boolean doubleRest) {
+    public static boolean setThisWeekDoubleRest(Context context, boolean doubleRest) {
         LocalDate monday = LocalDate.now().with(DayOfWeek.MONDAY);
-        prefs(context).edit().putLong(KEY_ANCHOR_MONDAY, monday.toEpochDay())
-                .putBoolean(KEY_ANCHOR_DOUBLE_REST, doubleRest).apply();
+        return prefs(context).edit().putLong(KEY_ANCHOR_MONDAY, monday.toEpochDay())
+                .putBoolean(KEY_ANCHOR_DOUBLE_REST, doubleRest).commit();
     }
 
     public static String weekLabel(Context context, LocalDate date) {

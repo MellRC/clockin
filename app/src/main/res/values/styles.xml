@@ -3,4 +3,20 @@
         <item name="android:windowBackground">@color/brand_warm_yellow</item>
         <item name="android:windowSplashScreenBackground">@color/brand_warm_yellow</item>
     </style>
+    <style name="LockReminderTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/lock_reminder_yellow</item>
+        <item name="android:colorAccent">@color/lock_reminder_title</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+    <style name="WheelTimePickerDialogTheme" parent="@android:style/Theme.Material.Light.Dialog.Alert">
+        <item name="android:colorAccent">#FFCB6F</item>
+        <item name="android:textColorPrimary">#2D2D2D</item>
+        <item name="android:textColorSecondary">#81745F</item>
+        <item name="android:windowBackground">#FFFFFFFF</item>
+    </style>
 </resources>

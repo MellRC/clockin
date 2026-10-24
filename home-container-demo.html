@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#fbfaf6">
+  <title>首页容器改版 Demo</title>
+  <style>
+    :root{font-family:Inter,"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;color:#302d27;background:#ece9e1;--yellow:#f5d11b;--ink:#302d27;--muted:#928b7d;--line:#e9e5dc;--paper:#fbfaf6}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;}body{min-height:100vh;display:flex;justify-content:center;background:#ece9e1}.phone{position:relative;width:min(100%,430px);height:100vh;height:100dvh;min-height:0;padding:0;background:#faf8f2;overflow:hidden}
+    .pinned-background{position:absolute;z-index:0;inset:0;pointer-events:none;overflow:hidden}.pinned-yellow{position:absolute;inset:0 0 auto;height:calc(48% - min(31.201923vw,134px));background:var(--yellow)}.honey-splash{position:absolute;top:calc(48% - min(31.201923vw,134px));left:0;width:100%;height:auto;display:block;overflow:visible}.honey-splash path{fill:var(--yellow)}.date{position:absolute;top:calc(48% - min(31.201923vw,134px) - 12px);left:24px;right:24px;transform:translateY(-100%)}.date h1{margin:0;font-size:32px;line-height:1.25;letter-spacing:-.6px;font-weight:800;color:#3f3529}.date-meta{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px;margin-top:12px;font-size:12px;line-height:1.6;color:#5b4b16}.date-meta time,.date-meta small{margin:0;font:inherit;white-space:nowrap}
+    #homePage{--status-row-height:0px}
+    .sheet{position:absolute;z-index:4;inset:0;overflow:hidden;border-radius:22px 22px 0 0;background:rgba(250,248,242,var(--sheet-opacity,.78));box-shadow:none;transform:translate3d(0,var(--sheet-top,calc(48% + 8px)),0);will-change:transform;touch-action:none}
+    .home-scroll{position:absolute;left:0;right:0;top:0;bottom:var(--sheet-top,calc(48% + 8px));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:auto;touch-action:none;background:transparent}.home-scroll::-webkit-scrollbar{display:none}
+    .home-content{position:relative;z-index:1;padding:12px 23px calc(100px + env(safe-area-inset-bottom))}
+    .sheet.is-dragging{user-select:none;-webkit-user-select:none}
+    .overview{padding:4px 0 20px;border-bottom:1px solid var(--line)}.overview-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.overview-copy{flex:1;min-width:0}.overview-head .switch{flex:none;margin-top:3px}.eyebrow{font-size:11px;color:var(--muted)}.switch{width:44px;height:26px;padding:3px;border:0;border-radius:20px;background:#d8d3c9;cursor:pointer;transition:background .18s}.switch i{display:block;width:20px;height:20px;border-radius:50%;background:white;transition:transform .18s}.switch.on{background:var(--yellow)}.switch.on i{transform:translateX(18px)}.overview h1{margin:0 0 4px;font-size:25px;letter-spacing:-.7px;font-weight:850}.overview p{margin:0;color:var(--muted);font-size:11px}
+    .section{margin-top:24px}.section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}.section-head h2{margin:0;font-size:15px;letter-spacing:-.2px}.section-head span{font-size:10px;color:var(--muted)}
+    .timeline{padding:2px 0 0}
+    .event{position:relative;display:grid;grid-template-columns:42px 22px minmax(0,1fr) auto;grid-template-rows:minmax(70px,auto);column-gap:10px;align-items:center}
+    .event>*{grid-row:1}
+    /* The connecting segments and node share the exact same grid column. */
+    .event::before,.event::after{content:"";grid-column:2;grid-row:1;justify-self:center;width:1px;height:50%;background:#ddd7cb;pointer-events:none}
+    .event::before{align-self:start}.event::after{align-self:end}
+    .event:first-child::before,.event:last-child::after{display:none}
+    .time{grid-column:1;font-size:13px;font-weight:650;font-variant-numeric:tabular-nums;color:#8a8275}
+    .node{grid-column:2;justify-self:center;z-index:1;width:10px;height:10px;margin:0;border:2px solid #faf8f2;border-radius:50%;background:#bdb5a7;box-shadow:0 0 0 1px #d0c9bb}
+    .event.active .node{width:14px;height:14px;border:3px solid #faf8f2;background:var(--yellow);box-shadow:0 0 0 3px #f5d11b30}
+    .event.active .time{color:#796300;font-weight:800}
+    .event-copy{grid-column:3;min-width:0;padding:12px 0}
+    .event-copy strong{display:block;font-size:13px;line-height:1.5;font-weight:650;overflow-wrap:anywhere}
+    .event-copy small{display:block;margin-top:4px;color:var(--muted);font-size:10px;line-height:1.5}
+    .state{grid-column:4;font-size:10px;color:#a39b8d;white-space:nowrap}
+    .event.active .state{color:#927600;font-weight:700}
+    .plain-section{padding:0 0 18px;border-bottom:1px solid var(--line)}.location-row{display:flex;align-items:center;gap:12px;padding:9px 0 13px}.pin{display:grid;place-items:center;width:35px;height:35px;flex:none;border-radius:50%;background:#fff3b6;color:#806900;font-size:16px}.location-copy{flex:1}.location-copy strong,.week-row strong{display:block;font-size:12px}.location-copy small,.week-row small{display:block;margin-top:4px;color:var(--muted);font-size:10px}.chevron{font-size:20px;color:#a39b8d}.map{height:92px;position:relative;overflow:hidden;background:#f3efe5}.map:before,.map:after{content:"";position:absolute;width:130%;height:8px;background:#fffdf8;border-block:1px solid #e6dfd0;transform:rotate(-18deg);left:-10%;top:42px}.map:after{transform:rotate(32deg);top:28px;left:-19%}.map-label{position:absolute;z-index:1;right:9px;bottom:8px;padding:4px 7px;background:#fbfaf6;color:#716959;font-size:9px}.range{position:absolute;z-index:1;left:56%;top:50%;width:48px;height:48px;transform:translate(-50%,-50%);border:1px solid #d7b900;border-radius:50%;background:#f5d11b42;display:grid;place-items:center}.range i{width:12px;height:12px;border:3px solid white;border-radius:50%;background:#9b7c00}
+    .record-section{border-top:1px solid var(--line);padding-top:22px}.record-link{border:0;background:none;color:#776b46;font:inherit;font-size:11px;padding:10px 0 10px 12px;cursor:pointer}.record-caption{margin:0 0 8px;color:var(--muted);font-size:10px}.record-row{display:grid;grid-template-columns:44px minmax(0,1fr) auto 10px;gap:12px;align-items:center;width:100%;min-height:76px;padding:14px 0;border:0;border-bottom:1px solid var(--line);background:none;text-align:left;font:inherit;color:inherit;cursor:pointer}.record-row:hover{background:#f2eedf}.record-date{font-size:11px;color:#938b7b;font-variant-numeric:tabular-nums}.record-date b{display:block;margin-top:5px;font-size:13px;color:#645c4e;font-weight:500}.record-copy strong{display:block;font-size:13px;font-weight:650}.record-copy small{display:block;margin-top:6px;font-size:10px;line-height:1.5;color:var(--muted)}.record-status{font-size:11px;white-space:nowrap}.record-status.pending{color:#897000}.record-status.confirmed{color:#506552}.record-status.incomplete{color:#9b5d48}.record-arrow{color:#aaa292;font-size:19px}.record-dialog{width:min(100%,430px);height:100dvh;max-width:100%;max-height:100dvh;margin:auto;padding:0;border:0;background:#faf8f2;color:var(--ink);overflow-y:auto;overscroll-behavior:contain}.record-dialog::backdrop{background:#302d2740}.record-toolbar{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#faf8f2;border-bottom:1px solid var(--line)}.record-toolbar button{min-width:48px;min-height:44px;border:0;background:none;color:inherit;font:inherit;font-size:13px;cursor:pointer}.record-toolbar strong{font-size:14px}.record-body{padding:28px 25px 36px}.record-kicker{font-size:11px;color:var(--muted);letter-spacing:1px}.record-result{margin:18px 0 10px;font-size:34px;font-weight:800;letter-spacing:-1px}.record-summary{font-size:13px;line-height:1.8;color:#847b6b;margin:0 0 26px}.record-facts{margin:0;padding:14px 0;border-block:1px solid var(--line)}.record-facts div{display:flex;justify-content:space-between;gap:18px;padding:9px 0;font-size:12px}.record-facts dt{color:var(--muted)}.record-facts dd{margin:0;text-align:right;line-height:1.5}.record-subtitle{margin:28px 0 12px;font-size:14px}.record-steps{list-style:none;padding:0;margin:0}.record-step{display:grid;grid-template-columns:52px minmax(0,1fr);gap:18px;padding:15px 0;border-bottom:1px solid var(--line)}.record-step time{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;padding-top:2px}.record-step strong{font-size:13px;font-weight:600}.record-step p{font-size:11px;color:#928878;line-height:1.7;margin:6px 0 0}.record-disclaimer{margin:24px 0 0;font-size:10px;color:var(--muted);line-height:1.8}.record-dialog button:focus-visible,.record-section button:focus-visible{outline:2px solid #8c7417;outline-offset:3px}@media(min-width:500px){.record-dialog{height:calc(100dvh - 36px);border-radius:28px}}
+    .week-list{border-bottom:1px solid var(--line)}.week-row{display:flex;align-items:center;justify-content:space-between;min-height:54px;border-top:1px solid var(--line)}.week-row:first-child{border-top:0}.week-row em{font-style:normal;font-size:11px;color:#786600;font-weight:700}.week-row .arrow{color:#a39b8d;font-size:17px}
+    .try{width:100%;margin-top:21px;padding:14px;border:0;border-radius:10px;background:var(--yellow);color:#3a3211;font:inherit;font-size:12px;font-weight:800;cursor:pointer}.toast{position:fixed;z-index:9;left:50%;bottom:93px;transform:translate(-50%,10px);padding:10px 15px;border-radius:22px;background:#302d27;color:white;font-size:11px;opacity:0;pointer-events:none;transition:.18s}.toast.show{transform:translate(-50%,0);opacity:1}
+    .nav{position:fixed;z-index:5;left:50%;bottom:calc(15px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(calc(100% - 38px),370px);height:59px;padding:4px 8px;border:1px solid #e9e5dc;border-radius:32px;background:#fffffff2;box-shadow:0 7px 24px #302d2714;display:grid;grid-template-columns:repeat(3,1fr);backdrop-filter:blur(12px)}.nav button{border:0;border-radius:25px;background:transparent;color:#8f887c;font:inherit;font-size:10px;cursor:pointer}.nav button.active{background:var(--yellow);color:#504311;font-weight:750}
+    @media(min-width:500px){body{padding:18px 0}.phone{height:calc(100vh - 36px);height:calc(100dvh - 36px);border-radius:28px;box-shadow:0 20px 60px #302d271c}.nav{bottom:30px}}
+    @media(max-height:720px){.top{padding-top:12px;padding-bottom:15px}.section{margin-top:17px}.event{grid-template-rows:minmax(64px,auto)}.plain-section{padding-bottom:13px}}
+    .location-entry{width:100%;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:76px}.location-entry .location-copy small{line-height:1.6}.location-entry .pin{background:var(--yellow)}.location-entry:focus-visible{outline:2px solid #8c7417;outline-offset:3px}
+    .map-dialog[open]{display:flex;flex-direction:column}.map-dialog .record-toolbar{flex:none}.map-intro{padding:18px 23px;flex:none}.map-intro h2{margin:0 0 6px;font-size:18px}.map-intro p{margin:0;color:var(--muted);font-size:11px;line-height:1.7}.map-viewport{flex:1;min-height:240px;background:#eeeae1}.map-viewport iframe{display:block;width:100%;height:100%;min-height:240px;border:0}.map-footer{padding:14px 23px calc(18px + env(safe-area-inset-bottom));flex:none}.map-footer p{font-size:11px;line-height:1.7;color:var(--muted);margin:0 0 10px}.map-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.map-actions button,.map-actions a{font:inherit;font-size:12px;color:#5b4b16;min-height:44px;display:inline-flex;align-items:center;justify-content:center}.map-actions button{border:0;background:var(--yellow);padding:0 16px;border-radius:8px;cursor:pointer}.map-credit{display:block;margin-top:12px;font-size:10px;color:#827966}
+    .map-viewport{position:relative}.map-canvas{position:absolute;inset:0}.map-legend{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:#69581b}.map-legend i{width:12px;height:12px;border:2px solid #c4a000;border-radius:50%;background:#f5d11b40}.map-status{min-height:19px}.map-credit a{color:inherit}.map-viewport .maplibregl-ctrl-attrib{font-size:10px}
+    /* Homepage groups use spacing and type hierarchy; detail views stay independent. */
+    .home-content .overview{border:0;padding-bottom:4px}
+    .home-content .section{margin-top:34px}
+    .home-content .section-head{align-items:center;gap:12px;margin-bottom:12px}
+    .home-content .section-head h2{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:750;line-height:1.5}
+    .home-content .section-head h2::before{content:"";display:block;flex:0 0 4px;height:14px;background:var(--yellow)}
+    .home-content .section-head>span{font-size:10px;line-height:1.5;text-align:right}
+    .home-content .record-section{border:0;padding-top:0}
+    .home-content .record-caption{margin-bottom:6px}
+    .record-row{border-radius:12px}
+    .record-row:active,.record-row:focus-visible{background:#f2eedf}
+    .home-content .record-row{border:0;min-height:80px;padding:16px 0}
+    .home-content .location-entry{border:0;padding:12px 0;min-height:72px}
+    .home-content .week-list,.home-content .week-row{border:0}
+    .home-content .week-row{min-height:68px;padding:12px 0;gap:16px}
+    .home-content .week-row strong{font-size:13px;font-weight:650;line-height:1.5}
+    .home-content .week-row small{margin-top:6px;line-height:1.5}
+    .home-content .try{margin-top:28px}
+    @media(max-height:720px){.home-content .section{margin-top:28px}.home-content .record-row{min-height:74px}.home-content .week-row{min-height:64px}}
+    /* The lazy-loaded library sets .maplibregl-map to position:relative.
+       An ID selector keeps this absolute-fill container from collapsing to zero height. */
+    #locationMapCanvas{position:absolute;inset:0;width:100%;height:100%;min-height:240px}
+  </style>
+</head>
+<body>
+  <main class="phone" id="homePage">
+    <div class="pinned-background" aria-hidden="true"><div class="pinned-yellow"></div><svg class="honey-splash" viewBox="0 0 390 138" preserveAspectRatio="xMidYMin meet" aria-hidden="true"><path d="M0.000 0.000L0.000 37.938L0.438 37.938L2.938 40.812L4.188 41.562L5.938 43.188L13.562 46.938L18.438 48.188L20.188 48.938L22.438 49.312L27.438 49.688L37.062 49.438L48.188 46.938L52.312 45.062L56.812 43.438L59.562 41.688L62.062 40.562L64.688 38.688L66.812 37.812L69.688 35.688L72.312 34.438L74.438 32.812L77.438 31.562L80.562 29.562L85.812 27.812L89.062 27.188L92.812 27.312L95.562 28.188L97.438 29.188L99.688 31.188L102.188 34.938L103.438 39.062L104.938 46.562L105.688 57.188L105.562 67.312L105.188 69.938L105.188 72.688L104.812 74.688L104.688 78.562L104.062 81.562L101.938 104.438L101.688 111.562L102.062 114.562L103.562 118.438L106.562 121.062L107.438 121.438L109.688 121.688L113.812 121.438L116.562 120.312L119.688 117.562L120.688 115.312L121.562 103.312L121.562 86.188L122.062 68.438L123.812 51.188L125.312 45.688L127.312 41.188L130.062 38.062L133.438 36.312L134.938 36.188L137.938 37.438L139.812 39.438L141.312 42.312L141.688 44.438L141.562 47.938L139.188 58.062L139.188 61.312L139.812 63.438L141.938 66.562L142.938 67.312L144.688 67.812L148.062 67.812L150.188 66.938L153.062 64.312L154.562 60.562L155.062 56.812L153.188 43.938L153.312 40.562L153.938 38.562L155.188 37.188L157.188 35.812L158.688 35.312L163.312 35.062L165.188 35.688L168.562 38.562L169.312 39.812L171.938 42.688L173.312 43.688L177.562 45.688L182.438 46.812L191.812 46.812L196.938 45.562L201.062 43.688L203.562 41.688L209.688 35.312L211.562 33.812L214.562 32.438L217.438 31.938L220.438 31.938L223.688 32.438L225.062 33.062L227.438 34.938L228.938 37.688L229.438 40.438L229.188 49.312L229.562 51.562L231.562 54.562L232.938 55.438L235.562 56.062L238.562 55.812L240.938 54.812L242.688 53.312L243.688 51.812L244.938 49.312L245.188 47.812L245.188 39.312L245.562 36.562L246.312 34.938L247.312 33.938L249.312 32.812L252.688 32.438L254.438 32.938L257.688 35.062L264.312 41.688L266.438 43.438L270.438 45.438L273.438 46.312L275.688 46.688L278.062 46.688L282.062 45.812L286.438 43.812L289.938 40.312L290.688 39.062L292.688 37.188L293.562 35.812L297.188 32.188L298.312 31.562L300.062 29.812L303.188 28.062L306.062 26.938L308.562 26.438L311.688 26.438L314.312 26.938L316.812 27.938L320.062 30.312L322.938 34.312L324.688 40.062L325.312 45.438L324.938 52.312L323.938 58.312L322.562 70.688L321.062 78.938L320.938 85.312L321.438 87.438L322.562 89.438L324.438 91.062L326.562 91.188L328.562 90.688L331.312 88.188L331.812 87.312L332.312 82.062L332.188 57.688L332.938 45.438L335.312 36.938L336.312 35.188L338.562 32.438L342.312 30.188L345.062 29.562L349.188 29.562L351.312 29.938L355.062 32.188L356.188 33.562L356.812 36.562L356.812 39.438L356.062 44.438L356.188 49.562L356.938 51.562L357.688 52.312L359.812 53.062L361.188 53.062L363.188 52.562L364.688 50.938L365.812 46.438L367.438 33.438L368.438 30.562L370.062 28.938L372.312 28.062L375.062 28.938L376.312 29.688L378.188 31.812L381.438 34.062L383.062 34.812L384.438 35.062L390.000 34.938L390.000 0.000Z"/></svg></div>
+    <div class="date"><h1>今天的打卡</h1><div class="date-meta"><time datetime="2026-10-16">10 月 16 日 · 星期五</time><small>工作日 · 4 个时段</small></div></div>
+    <div class="sheet" id="homeSheet" aria-label="首页内容面板">
+    <div class="home-scroll" id="homeScroll" role="region" aria-label="打卡内容" tabindex="0">
+    <div class="home-content" id="homeContent">
+    <section class="overview"><div class="overview-head"><div class="overview-copy"><h1 id="statusTitle">打卡提醒已开启</h1><p id="statusCopy">下一次检查 · 07:30　公司范围内</p></div><button class="switch on" id="switch" aria-label="切换自动打卡"><i></i></button></div></section>
+
+    <section class="section"><div class="section-head"><h2>今天的安排</h2></div><div class="timeline">
+      <div class="event active"><span class="time">07:30</span><i class="node"></i><div class="event-copy"><strong>上班打卡</strong><small>到达公司范围后提醒</small></div><span class="state">待触发</span></div>
+      <div class="event"><span class="time">12:30</span><i class="node"></i><div class="event-copy"><strong>午间下班卡</strong><small>有效 12:30—13:15</small></div><span class="state">已安排</span></div>
+      <div class="event"><span class="time">13:15</span><i class="node"></i><div class="event-copy"><strong>午间上班卡</strong><small>有效 13:15—14:00</small></div><span class="state">已安排</span></div>
+      <div class="event"><span class="time">18:00</span><i class="node"></i><div class="event-copy"><strong>下班打卡</strong><small>有效 18:00—19:00</small></div><span class="state">已安排</span></div>
+    </div></section>
+
+    <section class="section"><div class="section-head"><h2>附近打卡点</h2></div><button class="location-row location-entry" id="openLocationMap" aria-haspopup="dialog"><span class="pin" aria-hidden="true">⌖</span><span class="location-copy"><strong>查看打卡位置</strong></span><span class="chevron" aria-hidden="true">›</span></button></section>
+
+    <section class="section record-section"><div class="section-head"><h2>打卡记录</h2><button class="record-link" id="allRecords">全部记录 →</button></div><p class="record-caption">最近三次 · 示例数据</p><div id="recentRecords"></div></section>
+
+    <section class="section"><div class="section-head"><h2>本周排班</h2></div><div class="week-list"><div class="week-row"><div><strong>本周 · 双休</strong><small>周一至周五正常打卡</small></div><em>当前周</em></div><div class="week-row"><div><strong>下周 · 单休</strong><small>周六按工作日安排</small></div><span class="arrow">›</span></div></div></section>
+
+    <button class="try" id="try">立即试开企业微信</button>
+    </div>
+    </div>
+    </div>
+  </main>
+  <nav class="nav" aria-label="底部导航"><button class="active">⌂　首页</button><button>◷　收入</button><button>⚙　设置</button></nav>
+  <div class="toast" id="toast" role="status"></div>
+  <dialog class="record-dialog" id="recordDialog" aria-labelledby="recordDialogTitle">
+    <header class="record-toolbar"><button id="recordBack" aria-label="返回">← 返回</button><strong id="recordDialogTitle">记录详情</strong><button id="recordClose">关闭</button></header>
+    <div class="record-body" id="recordBody"></div>
+  </dialog>
+  <dialog class="record-dialog map-dialog" id="locationMapDialog" aria-labelledby="locationMapTitle">
+    <header class="record-toolbar"><button id="mapBack">← 返回</button><strong id="locationMapTitle">打卡位置</strong><button id="mapClose">关闭</button></header>
+    <div class="map-intro"><h2>北京 · 景山公园</h2><div class="map-legend"><i aria-hidden="true"></i><span id="mapRadiusLabel"></span></div></div>
+    <div class="map-viewport"><div id="locationMapCanvas" class="map-canvas" role="region" aria-label="可拖动缩放的打卡范围地图"></div></div>
+    <footer class="map-footer"><p class="map-status" id="mapStatus" role="status" hidden></p><div class="map-actions"><button id="mapRecenter">查看范围</button><button id="mapReload">重新加载</button><a id="mapExternal" target="_blank" rel="noopener noreferrer">地图网站 ↗</a></div><span class="map-credit"><a href="https://openfreemap.org/" target="_blank" rel="noopener noreferrer">OpenFreeMap</a> · <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener noreferrer">© OpenMapTiles</a> · <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">© OpenStreetMap contributors</a></span></footer>
+  </dialog>
+  <script>
+    const toggle=document.getElementById('switch'),title=document.getElementById('statusTitle'),copy=document.getElementById('statusCopy'),toast=document.getElementById('toast');
+    toggle.addEventListener('click',()=>{const on=toggle.classList.toggle('on');title.textContent=on?'打卡提醒已开启':'自动打卡已暂停';copy.textContent=on?'下一次检查 · 07:30　公司范围内':'已暂停所有自动安排';});
+    let timer;function note(text){toast.textContent=text;toast.classList.add('show');clearTimeout(timer);timer=setTimeout(()=>toast.classList.remove('show'),1500)}
+    document.getElementById('try').addEventListener('click',()=>note('Demo：这里只展示首页布局'));
+    document.querySelectorAll('.nav button').forEach(button=>button.addEventListener('click',()=>{document.querySelector('.nav .active')?.classList.remove('active');button.classList.add('active');note('Demo 导航')}));
+    // Map-only demo: WGS84 public example; no device location or attendance-state access.
+    const demoMapPoint={lat:39.925,lng:116.396,radiusMeters:100};
+    const locationMapDialog=document.getElementById('locationMapDialog'),mapStatus=document.getElementById('mapStatus');
+    let demoMap=null,mapLibraryPromise=null,mapGeneration=0,mapWaitTimer=0,mapResizeObserver=null,mapFetchController=null;
+
+    const mapDiagnostics=document.createElement('details'),mapDiagnosticTitle=document.createElement('summary'),mapDiagnosticText=document.createElement('pre');
+    mapDiagnosticTitle.textContent='查看具体错误';mapDiagnosticText.style.cssText='white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;max-height:100px;overflow:auto';
+    mapDiagnostics.append(mapDiagnosticTitle,mapDiagnosticText);mapDiagnostics.hidden=true;mapStatus.after(mapDiagnostics);
+    let mapErrors=[];
+    function reportMapError(error,stage='地图资源'){
+      const message=String(error?.message||error||'未提供错误详情');
+      let category=stage;
+      if(/worker/i.test(message))category='地图后台线程';
+      else if(/webgl|gpu|context lost/i.test(message))category='浏览器图形渲染';
+      else if(/glyph|font/i.test(message))category='地图字体';
+      else if(/sprite/i.test(message))category='地图图标';
+      else if(/tile|\.pbf/i.test(message))category='底图瓦片';
+      else if(/style|stylesheet/i.test(message))category='地图样式';
+      const safe=message.replace(/https?:\/\/[^\s"'<>]+/g,url=>{try{return new URL(url).origin+'/[资源路径已省略]'}catch{return '[资源地址]'}}).slice(0,320);
+      const detail=category+'：'+safe;
+      if(!mapErrors.includes(detail))mapErrors.push(detail);
+      mapErrors=mapErrors.slice(-3);mapDiagnosticText.textContent=mapErrors.join('\n\n');mapDiagnostics.hidden=false;mapDiagnostics.open=true;
+      mapStatus.hidden=false;mapStatus.textContent=category+'加载异常，具体原因见下方。';
+    }
+    document.getElementById('mapRadiusLabel').textContent=`打卡范围 · 半径 ${demoMapPoint.radiusMeters} 米（示例）`;
+    function makeRangePolygon(point){
+      const rad=Math.PI/180,lat=point.lat*rad,lng=point.lng*rad,d=point.radiusMeters/6371008.8,ring=[];
+      for(let i=0;i<96;i++){const bearing=i*Math.PI*2/96;
+        const y=Math.asin(Math.sin(lat)*Math.cos(d)+Math.cos(lat)*Math.sin(d)*Math.cos(bearing));
+        const x=lng+Math.atan2(Math.sin(bearing)*Math.sin(d)*Math.cos(lat),Math.cos(d)-Math.sin(lat)*Math.sin(y));
+        ring.push([x/rad,y/rad]);
+      }
+      ring.push([...ring[0]]);
+      return {type:'Feature',properties:{radiusMeters:point.radiusMeters},geometry:{type:'Polygon',coordinates:[ring]}};
+    }
+    const demoRange=makeRangePolygon(demoMapPoint);
+    function rangeBounds(){const ring=demoRange.geometry.coordinates[0];return [[Math.min(...ring.map(p=>p[0])),Math.min(...ring.map(p=>p[1]))],[Math.max(...ring.map(p=>p[0])),Math.max(...ring.map(p=>p[1]))]]}
+    function loadMapLibrary(){
+      if(mapLibraryPromise)return mapLibraryPromise;
+      // v5 UMD embeds its worker; no separate cross-origin module worker is needed.
+      const css=document.createElement('link');css.rel='stylesheet';css.href='https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css';
+      const script=document.createElement('script');script.src='https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js';script.async=true;
+      let timer;
+      const styles=new Promise((resolve,reject)=>{css.onload=resolve;css.onerror=()=>reject(new Error('stylesheet'));document.head.appendChild(css)});
+      const code=new Promise((resolve,reject)=>{script.onload=()=>globalThis.maplibregl?resolve(globalThis.maplibregl):reject(new Error('地图组件未初始化'));script.onerror=()=>reject(new Error('地图脚本加载失败'));document.head.appendChild(script)});
+      const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error('地图组件加载超过 15 秒')),15000)});
+      mapLibraryPromise=Promise.race([Promise.all([code,styles]),deadline]).then(([library])=>library).catch(error=>{css.remove();script.remove();mapLibraryPromise=null;throw error}).finally(()=>clearTimeout(timer));
+      return mapLibraryPromise;
+    }
+    async function fetchMapResource(params,abortController){
+      const url=new URL(params.url);
+      if(url.origin!=='https://tiles.openfreemap.org')throw new Error('不支持的地图资源来源');
+      const kind=url.pathname.includes('/fonts/')?'地图字体':url.pathname.includes('/sprites/')?'地图图标':url.pathname.includes('/styles/')?'地图样式':url.pathname.endsWith('.pbf')?'底图瓦片':'底图索引';
+      try{
+        const response=await fetch(url.href,{signal:abortController.signal,mode:'cors',credentials:'omit'});
+        if(!response.ok)throw new Error('HTTP '+response.status);
+        const data=params.type==='json'?await response.json():params.type==='string'?await response.text():await response.arrayBuffer();
+        return {data,cacheControl:response.headers.get('cache-control'),expires:response.headers.get('expires')};
+      }catch(error){
+        if(abortController.signal.aborted)throw error;
+        throw new Error(kind+'（页面请求）：'+String(error.message||error));
+      }
+    }
+    async function prepareDemoMapStyle(controller){
+      const timer=setTimeout(()=>controller.abort(),15000);
+      try{
+        const {data:style}=await fetchMapResource({url:'https://tiles.openfreemap.org/styles/liberty',type:'json'},controller);
+        await Promise.all(Object.values(style.sources).map(async source=>{
+          if(source.url){const {data:index}=await fetchMapResource({url:source.url,type:'json'},controller);delete source.url;for(const key of ['tiles','minzoom','maxzoom','bounds','attribution','scheme'])if(index[key]!==undefined&&source[key]===undefined)source[key]=index[key];}
+        }));
+        return style;
+      }catch(error){if(controller.signal.aborted)throw new Error('底图配置请求已取消或超过 15 秒');throw error;}
+      finally{clearTimeout(timer)}
+    }
+    function disposeDemoMap(){clearTimeout(mapWaitTimer);mapFetchController?.abort();mapFetchController=null;mapResizeObserver?.disconnect();mapResizeObserver=null;if(demoMap){demoMap.remove();demoMap=null}}
+    function fitDemoRange(){if(demoMap){demoMap.resize();demoMap.fitBounds(rangeBounds(),{padding:42,duration:0,maxZoom:17})}}
+    async function loadDemoMap(){
+      if(!locationMapDialog.open)return;
+      const generation=++mapGeneration;disposeDemoMap();mapErrors=[];mapDiagnostics.hidden=true;mapDiagnosticText.textContent='';mapStatus.hidden=true;mapStatus.textContent='';
+      let stage='地图组件';
+      try{
+        const library=await loadMapLibrary();
+        if(generation!==mapGeneration||!locationMapDialog.open)return;
+        stage='底图配置（页面请求）';
+        mapFetchController=new AbortController();
+        const style=await prepareDemoMapStyle(mapFetchController);
+        if(generation!==mapGeneration||!locationMapDialog.open)return;
+        stage='地图初始化';
+
+        const map=new library.Map({container:'locationMapCanvas',style,center:[demoMapPoint.lng,demoMapPoint.lat],zoom:15,attributionControl:false,dragRotate:false,pitchWithRotate:false});demoMap=map;
+        map.addControl(new library.NavigationControl({showCompass:false}),'top-right');
+        map.addControl(new library.AttributionControl({compact:false}),'bottom-right');
+        map.addControl(new library.ScaleControl({unit:'metric'}),'bottom-left');fitDemoRange();
+        const isCurrent=()=>generation===mapGeneration&&locationMapDialog.open;
+        mapWaitTimer=setTimeout(()=>{if(isCurrent()){mapStatus.hidden=false;mapStatus.textContent='加载较慢，请重试。';}},15000);
+        map.on('error',event=>{if(isCurrent()){clearTimeout(mapWaitTimer);reportMapError(event.error,event.sourceId==='openmaptiles'?'底图瓦片':'地图资源')}});
+        map.on('load',()=>{
+          if(!isCurrent())return;
+          map.addSource('attendance-range',{type:'geojson',data:demoRange});
+          map.addLayer({id:'attendance-range-fill',type:'fill',source:'attendance-range',paint:{'fill-color':'#f5d11b','fill-opacity':.22}});
+          map.addLayer({id:'attendance-range-outline',type:'line',source:'attendance-range',paint:{'line-color':'#c4a000','line-width':2}});
+          map.addSource('attendance-point',{type:'geojson',data:{type:'Feature',properties:{},geometry:{type:'Point',coordinates:[demoMapPoint.lng,demoMapPoint.lat]}}});
+          map.addLayer({id:'attendance-point',type:'circle',source:'attendance-point',paint:{'circle-radius':6,'circle-color':'#302d27','circle-stroke-color':'#ffffff','circle-stroke-width':2}});
+          clearTimeout(mapWaitTimer);if(!mapErrors.length){mapStatus.hidden=true;mapStatus.textContent='';}
+        });
+        mapResizeObserver=new ResizeObserver(()=>{if(isCurrent())map.resize()});mapResizeObserver.observe(document.getElementById('locationMapCanvas'));
+      }catch(error){if(generation===mapGeneration&&locationMapDialog.open){disposeDemoMap();reportMapError(error,stage)}}
+    }
+    document.getElementById('mapExternal').href=`https://www.openstreetmap.org/?mlat=${demoMapPoint.lat}&mlon=${demoMapPoint.lng}#map=16/${demoMapPoint.lat}/${demoMapPoint.lng}`;
+    document.getElementById('openLocationMap').addEventListener('click',()=>{if(locationMapDialog.open)return;locationMapDialog.showModal();loadDemoMap();document.getElementById('mapBack').focus()});
+    document.getElementById('mapBack').addEventListener('click',()=>locationMapDialog.close());
+    document.getElementById('mapClose').addEventListener('click',()=>locationMapDialog.close());
+    document.getElementById('mapReload').addEventListener('click',loadDemoMap);
+    document.getElementById('mapRecenter').addEventListener('click',fitDemoRange);
+    locationMapDialog.addEventListener('close',()=>{mapGeneration++;disposeDemoMap()});
+    // All journal entries are fictional UI examples, never attendance evidence.
+    const records=[
+      {id:'sample-noon-in',date:'10/16',day:'2026 年 10 月 16 日',time:'13:15',type:'午间上班',status:'待确认',tone:'pending',source:'尚无结果确认',brief:'已观察到企业微信打开',range:'13:15—14:00',summary:'已打开企业微信。尚无可靠的打卡结果，需要本人确认。',steps:[['13:15','提醒条件满足','已检查时间、工作日和位置条件。'],['13:15','等待真正解锁','提醒模式开始等待。'],['13:17','设备已解锁','停止等待震动，再次检查任务条件。'],['13:17','观察到企业微信进入前台','与本次启动请求关联，不代表打卡完成。'],['13:18','结果待确认','没有可靠完成证据，停止自动重复跳转。']]},
+      {id:'sample-noon-out',date:'10/16',day:'2026 年 10 月 16 日',time:'12:30',type:'午间下班',status:'已确认',tone:'confirmed',source:'本人手动确认',brief:'本人确认已打卡',range:'12:30—13:15',summary:'本人已确认完成本次打卡。此记录不是企业考勤系统的回执。',steps:[['12:30','提醒条件满足','已检查时间、工作日和位置条件。'],['12:32','设备已解锁','停止等待震动，校验后提交启动请求。'],['12:32','观察到企业微信进入前台','仅记录打开过程。'],['12:34','本人确认已打卡','确认来源：手动确认。']]},
+      {id:'sample-morning',date:'10/16',day:'2026 年 10 月 16 日',time:'07:30',type:'上班',status:'未完成',tone:'incomplete',source:'本人明确反馈（示例）',brief:'本人反馈未完成',range:'07:30—09:00',summary:'此示例为本人明确反馈未完成。不能仅因超时或打开失败，判为打卡失败。',steps:[['07:30','提醒条件满足','已检查时间、工作日和位置条件。'],['07:38','观察到企业微信进入前台','打开应用不能证明打卡完成。'],['09:00','任务有效期结束','结束提醒，结果仍未核验。'],['09:06','本人反馈未完成','示例结果来源：本人明确反馈。']]}
+    ];
+    const recordDialog=document.getElementById('recordDialog'),recordBody=document.getElementById('recordBody'),recordDialogTitle=document.getElementById('recordDialogTitle');
+    let recordView='detail',detailFromList=false;
+    function recordRow(record){return `<button class="record-row" data-record="${record.id}" aria-label="${record.date} ${record.type}，${record.status}，查看详情"><span class="record-date">${record.date}<b>${record.time}</b></span><span class="record-copy"><strong>${record.type}</strong><small>${record.brief}</small></span><span class="record-status ${record.tone}">${record.status}</span><span class="record-arrow" aria-hidden="true">›</span></button>`}
+    document.getElementById('recentRecords').innerHTML=records.map(recordRow).join('');
+    function presentRecordDialog(){if(!recordDialog.open)recordDialog.showModal();recordDialog.scrollTop=0;document.getElementById('recordBack').focus()}
+    function showRecordList(){recordView='list';recordDialogTitle.textContent='打卡记录';recordBody.innerHTML='<h2 class="record-result">每一次，都有记录。</h2>'+records.map(recordRow).join('')+'<p class="record-disclaimer">以上为交互样例，尚未接入真实任务记录。</p>';presentRecordDialog()}
+    function showRecord(id,fromList=false){const record=records.find(item=>item.id===id);if(!record)return;detailFromList=fromList;recordView='detail';recordDialogTitle.textContent='记录详情';recordBody.innerHTML=`<div class="record-kicker">${record.type} · 示例记录</div><h2 class="record-result record-status ${record.tone}">${record.status}</h2><p class="record-summary">${record.summary}</p><dl class="record-facts"><div><dt>所属工作日</dt><dd>${record.day}</dd></div><div><dt>有效区间</dt><dd>${record.range}</dd></div><div><dt>确认来源</dt><dd>${record.source}</dd></div></dl><h3 class="record-subtitle">本次过程</h3><ol class="record-steps">${record.steps.map(step=>`<li class="record-step"><time>${step[0]}</time><div><strong>${step[1]}</strong><p>${step[2]}</p></div></li>`).join('')}</ol><p class="record-disclaimer">示例数据，不代表真实考勤记录。进入企业微信与打卡完成分开记录。</p>`;presentRecordDialog()}
+    document.getElementById('recentRecords').addEventListener('click',event=>{const row=event.target.closest('[data-record]');if(row)showRecord(row.dataset.record)});
+    document.getElementById('allRecords').addEventListener('click',showRecordList);
+    recordBody.addEventListener('click',event=>{const row=event.target.closest('[data-record]');if(row)showRecord(row.dataset.record,true)});
+    document.getElementById('recordClose').addEventListener('click',()=>recordDialog.close());
+    document.getElementById('recordBack').addEventListener('click',()=>{if(recordView==='detail'&&detailFromList)showRecordList();else recordDialog.close()});
+    // Reuse the packaged APK sheet controller; demo content stays independent.
+const homeScroller=document.getElementById('homeScroll'),homePage=document.getElementById('homePage'),homeSheet=document.getElementById('homeSheet');
+let expandedTop=0,collapsedTop=0,sheetTop=0,gesture=null,springFrame=0,momentumFrame=0,suppressClick=false,suppressClickTimer=0;
+function measureSheet(){const css=getComputedStyle(homePage),h=homePage.clientHeight;collapsedTop=parseFloat(css.getPropertyValue('--status-row-height'))||0;expandedTop=Math.max(collapsedTop,h*.48+8);sheetTop=expandedTop;homeScroller.scrollTop=0;paintSheet()}
+function paintSheet(){const range=expandedTop-collapsedTop,progress=range>0?Math.max(0,Math.min(1,(expandedTop-sheetTop)/range)):1,opacity=.78+progress*.22;homeSheet.style.setProperty('--sheet-top',sheetTop.toFixed(2)+'px');homeSheet.style.setProperty('--sheet-opacity',opacity.toFixed(3))}
+function setSheetTop(value){sheetTop=Math.min(expandedTop,Math.max(collapsedTop,value));paintSheet()}
+function stopAnimations(){if(springFrame)cancelAnimationFrame(springFrame);if(momentumFrame)cancelAnimationFrame(momentumFrame);springFrame=momentumFrame=0}
+function settleSheet(target,initialVelocity=0){stopAnimations();let position=sheetTop,velocity=initialVelocity*1000,last=performance.now();const tick=now=>{const dt=Math.min(.032,(now-last)/1000);last=now;const accel=(target-position)*300-velocity*30;velocity+=accel*dt;position+=velocity*dt;if(Math.abs(target-position)<.45&&Math.abs(velocity)<12){setSheetTop(target);springFrame=0;return}setSheetTop(position);springFrame=requestAnimationFrame(tick)};springFrame=requestAnimationFrame(tick)}
+function startScrollMomentum(velocity){if(Math.abs(velocity)<=.08||homeScroller.scrollTop<=0)return;let v=velocity*1000,last=performance.now();const tick=now=>{const dt=Math.min(.032,(now-last)/1000);last=now;homeScroller.scrollTop+=v*dt;v*=Math.pow(.92,dt*60);if(Math.abs(v)<15||homeScroller.scrollTop<=0||homeScroller.scrollTop>=homeScroller.scrollHeight-homeScroller.clientHeight){momentumFrame=0;return}momentumFrame=requestAnimationFrame(tick)};momentumFrame=requestAnimationFrame(tick)}
+function chooseDetent(v){if(v<-.45)return collapsedTop;if(v>.45)return expandedTop;return sheetTop<(expandedTop+collapsedTop)/2?collapsedTop:expandedTop}
+function beginGesture(e){if(e.pointerType==='mouse'&&e.button!==0)return;stopAnimations();const captureTarget=e.target.closest?.('button,a,input,select')||homeSheet;gesture={id:e.pointerId,startY:e.clientY,lastY:e.clientY,lastTime:performance.now(),topVelocity:0,scrollVelocity:0,moved:false,captureTarget};captureTarget.setPointerCapture(e.pointerId)}
+function moveGesture(e){if(!gesture||gesture.id!==e.pointerId)return;const now=performance.now(),dy=gesture.lastY-e.clientY,dt=Math.max(1,now-gesture.lastTime);gesture.lastY=e.clientY;gesture.lastTime=now;gesture.topVelocity=0;gesture.scrollVelocity=0;if(!gesture.moved&&Math.abs(e.clientY-gesture.startY)<6)return;gesture.moved=true;e.preventDefault();let remaining=dy;
+ if(remaining>0){const take=Math.min(remaining,sheetTop-collapsedTop);if(take>0){setSheetTop(sheetTop-take);gesture.topVelocity=-take/dt;remaining-=take}else gesture.topVelocity=0;if(remaining>0){homeScroller.scrollTop+=remaining;gesture.scrollVelocity=remaining/dt}}
+ else if(remaining<0){remaining=-remaining;const take=Math.min(remaining,homeScroller.scrollTop);if(take>0){homeScroller.scrollTop-=take;gesture.scrollVelocity=-take/dt;remaining-=take}else gesture.scrollVelocity=0;if(remaining>0){const moved=Math.min(remaining,expandedTop-sheetTop);setSheetTop(sheetTop+moved);gesture.topVelocity=moved/dt}}
+ }
+function endGesture(e){if(!gesture||gesture.id!==e.pointerId)return;const g=gesture;gesture=null;if(g.captureTarget.hasPointerCapture(e.pointerId))g.captureTarget.releasePointerCapture(e.pointerId);if(g.moved){suppressClick=true;clearTimeout(suppressClickTimer);suppressClickTimer=setTimeout(()=>suppressClick=false,500)}if(homeScroller.scrollTop>0){startScrollMomentum(g.scrollVelocity);return}settleSheet(chooseDetent(g.topVelocity),g.topVelocity)}
+homeSheet.addEventListener('click',e=>{if(suppressClick){suppressClick=false;clearTimeout(suppressClickTimer);e.preventDefault();e.stopPropagation()}},true);homeSheet.addEventListener('pointerdown',beginGesture);homeSheet.addEventListener('pointermove',moveGesture);homeSheet.addEventListener('pointerup',endGesture);homeSheet.addEventListener('pointercancel',endGesture);
+let wheelTimer=0;homeSheet.addEventListener('wheel',e=>{stopAnimations();let delta=e.deltaY;if(delta<0){let left=-delta,take=Math.min(left,sheetTop-collapsedTop);if(take){setSheetTop(sheetTop-take);left-=take}if(left)homeScroller.scrollTop+=left}else{let left=delta,take=Math.min(left,homeScroller.scrollTop);if(take){homeScroller.scrollTop-=take;left-=take}if(left)setSheetTop(sheetTop+left)}e.preventDefault();clearTimeout(wheelTimer);wheelTimer=setTimeout(()=>{if(homeScroller.scrollTop===0)settleSheet(chooseDetent(0))},140)},{passive:false});
+homeScroller.scrollTop=0;measureSheet();window.addEventListener('resize',measureSheet,{passive:true});
+  </script>
+</body>
+</html>

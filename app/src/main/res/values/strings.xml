@@ -1,3 +1,3 @@
 <resources>
-    <string name="accessibility_service_description">关闭企业微信最近任务并重新打开，帮助完成自动打卡。</string>
+    <string name="accessibility_service_description">用于解锁监听与前台切换反馈。仅检查前台窗口包名和窗口标识，不读取聊天文字、不自动点击。前台切换不代表打卡成功，同时手动打开可能无法区分。自动打卡结果识别尚未实现，请手动确认。</string>
 </resources>

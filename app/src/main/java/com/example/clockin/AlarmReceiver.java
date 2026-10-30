@@ -26,6 +26,10 @@ public class AlarmReceiver extends BroadcastReceiver {
         ReminderFlow.Window window = ReminderFlow.window(context, type, date);
         if (!TaskPolicy.within(System.currentTimeMillis(), window.start, window.end)) return;
         if (type == AlarmScheduler.ARRIVAL) {
+            if (ReminderFlow.arrivalSettled(context, date.toEpochDay())) {
+                android.util.Log.i("AttendanceReminder", "arrival already opened; location check skipped");
+                return;
+            }
             Intent service = new Intent(context, LocationCheckService.class)
                     .putExtra(AlarmScheduler.EXTRA_DAY, date.toEpochDay())
                     .putExtra("attempt", attempt);

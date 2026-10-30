@@ -38,8 +38,8 @@ public final class AttendanceRules {
     }
 
     public static String reminderMode(Context context) {
-        String mode = prefs(context).getString(KEY_REMINDER_MODE, ReminderFlow.MODE_REMINDER);
-        return ReminderFlow.MODE_SILENT.equals(mode) ? ReminderFlow.MODE_SILENT : ReminderFlow.MODE_REMINDER;
+        String mode = prefs(context).getString(KEY_REMINDER_MODE, ReminderFlow.MODE_SILENT);
+        return ReminderFlow.MODE_REMINDER.equals(mode) ? ReminderFlow.MODE_REMINDER : ReminderFlow.MODE_SILENT;
     }
 
     public static boolean setReminderMode(Context context, String mode) {

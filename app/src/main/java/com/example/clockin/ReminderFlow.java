@@ -134,6 +134,7 @@ public final class ReminderFlow {
         if (MODE_SILENT.equals(AttendanceRules.reminderMode(c))) {
             stopVibrationFor(c, id);
             notifySilentOnce(c, task);
+            if (!isNotificationAllowed(c)) scheduleUnlockCheck(c, task);
             tick(c);
             return;
         }
@@ -143,6 +144,10 @@ public final class ReminderFlow {
         } else {
             postReminder(c, task, "解锁后将尝试打开企业微信。", true);
             startVibration(c, id);
+            if (!isNotificationAllowed(c)) {
+                log(id, "notification unavailable; unlock will still try to open WeCom");
+                scheduleUnlockCheck(c, task);
+            }
             if (unlocked(c)) processUnlock(c, task, "post-trigger unlock recheck");
         }
     }
@@ -422,13 +427,13 @@ public final class ReminderFlow {
         t.resultSource = "automatic_recognition_not_implemented";
         t.resultAt = System.currentTimeMillis();
         boolean saved = saveTask(c, t, "foreground observed=" + foreground + "; request attribution and attendance remain unknown");
-        boolean statusSubmitted = false;
         if (saved) {
-            postActionNotification(c, t, MODE_SILENT.equals(AttendanceRules.reminderMode(c)),
-                    notificationMessage(t), false);
-            if (foreground) statusSubmitted = postForegroundStatusOnce(c, requestId, t.id);
+            stopVibrationFor(c, id);
+            // The open itself is the feedback. Do not raise another banner or vibration.
+            postActionNotification(c, t, true, notificationMessage(t), false, false);
+            log(id, "opened; further alerts suppressed; attendance remains unverified");
         }
-        return saved && (!foreground || statusSubmitted);
+        return false;
     }
 
     static synchronized boolean manualLaunchFinished(Context context, String requestId, boolean foreground) {
@@ -710,9 +715,25 @@ public final class ReminderFlow {
                     ? "wecom_not_installed" : "launch_unavailable_not_attendance_failure";
         }
         saveTask(c, task, "startActivity returned=" + requested + "; foreground not inferred");
-        // Always provide the user route immediately: Android may silently block startActivity.
+        if (requested) {
+            postActionNotification(c, task, true, notificationMessage(task), false, false);
+            return;
+        }
+        // Launch did not start. Keep an alert so the user can open WeCom from the card.
         postActionNotification(c, task, MODE_SILENT.equals(AttendanceRules.reminderMode(c)),
-                notificationMessage(task), false);
+                notificationMessage(task), false, true);
+    }
+
+    /** Morning location checks stop once this arrival has already opened WeCom. */
+    static synchronized boolean arrivalSettled(Context context, long workdayEpoch) {
+        Context c = context.getApplicationContext();
+        Window window = window(c, AlarmScheduler.ARRIVAL, LocalDate.ofEpochDay(workdayEpoch));
+        Task task = readTask(c, taskId(workdayEpoch, AlarmScheduler.ARRIVAL, window.start, window.end));
+        if (task == null) return false;
+        return task.attempts > 0 || RESULT_COMPLETE.equals(task.result)
+                || ENDED.equals(task.state) || EXPIRED.equals(task.state)
+                || REQUESTING_OPEN.equals(task.state) || WAITING_RESULT.equals(task.state)
+                || WAITING_USER.equals(task.state);
     }
 
     static Window window(Context c, int type, LocalDate workday) {
@@ -756,9 +777,13 @@ public final class ReminderFlow {
         return "请在有效区间内解锁；符合条件后尝试打开企业微信。";
     }
     private static void postReminder(Context c, Task task, String message, boolean ongoing) {
-        postActionNotification(c, task, false, message, ongoing);
+        postActionNotification(c, task, false, message, ongoing, true);
     }
     private static void postActionNotification(Context c, Task task, boolean silent, String message, boolean ongoing) {
+        postActionNotification(c, task, silent, message, ongoing, true);
+    }
+    private static void postActionNotification(Context c, Task task, boolean silent, String message,
+                                              boolean ongoing, boolean allowRepost) {
         if (task.notificationDismissed || !validNow(c, task)
                 || RESULT_COMPLETE.equals(task.result) || !isActive(task.state)) return;
         NotificationManager nm = c.getSystemService(NotificationManager.class);
@@ -766,15 +791,20 @@ public final class ReminderFlow {
         if (nm == null || !isNotificationAllowed(c)) {
             log(task.id, "notification unavailable; lockscreen visibility not asserted"); return;
         }
-        boolean first = !task.notificationAttempted;
+        if (!allowRepost && !task.notificationAttempted) {
+            log(task.id, "quiet update skipped; no existing reminder to change");
+            return;
+        }
+        boolean first = allowRepost && !task.notificationAttempted;
         String existingChannel = null;
         if (!first) {
             for (android.service.notification.StatusBarNotification active : nm.getActiveNotifications())
                 if (task.id.equals(active.getTag()) && task.notificationId == active.getId())
                     existingChannel = active.getNotification().getChannelId();
             // A swipe sets notificationDismissed and never comes back. A missing card after
-            // process death is posted again.
-            if (existingChannel == null) first = true;
+            // process death is posted again. A quiet update must not become a new alert.
+            if (existingChannel == null && allowRepost) first = true;
+            if (existingChannel == null) existingChannel = SILENT_CHANNEL;
         } else {
             // Write-ahead ledger: a crash can omit a notification, but cannot duplicate it.
             task.notificationAttempted = true;
@@ -795,7 +825,7 @@ public final class ReminderFlow {
                 .putExtra(ReminderActionReceiver.TASK, task.id);
         PendingIntent stopped = PendingIntent.getBroadcast(c, 0, stop,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        String channel = silent ? SILENT_CHANNEL : (first ? LOCK_CHANNEL : existingChannel);
+        String channel = !allowRepost || silent ? SILENT_CHANNEL : (first ? LOCK_CHANNEL : existingChannel);
         String text = typeTitle(task.type) + " · " + interval(task) + "。" + message;
         Notification.Builder n = new Notification.Builder(c, channel)
                 .setSmallIcon(android.R.drawable.ic_lock_idle_alarm).setContentTitle("打卡提醒")
@@ -806,7 +836,7 @@ public final class ReminderFlow {
                 .setDefaults(0).setSound(null).setVibrate(new long[0])
                 .addAction(android.R.drawable.ic_menu_agenda, "我已打卡", completeAction(c, task))
                 .addAction(android.R.drawable.ic_menu_close_clear_cancel, "停止本次提醒", stopped);
-        if (first && ongoing && !silent && !unlocked(c) && canUseFullScreen(c)
+        if (allowRepost && first && ongoing && !silent && !unlocked(c) && canUseFullScreen(c)
                 && !task.lockReminderDismissed && !task.waitingVibrationSuppressed) {
             Intent lock = new Intent(c, LockReminderActivity.class)
                     .setData(Uri.parse("clockin://lock/" + Uri.encode(task.id)))
@@ -974,6 +1004,57 @@ public final class ReminderFlow {
 
     private static int vibrationRequestCode(String id) {
         return VIBRATION_REQUEST_BASE + (id.hashCode() & 0x3fff);
+    }
+
+    private static final long UNLOCK_CHECK_MS = 30_000L;
+    private static final int UNLOCK_CHECK_REQUEST = 7101;
+
+    /** Notification permission is optional. While it is off, keep waking until unlock opens WeCom. */
+    public static synchronized void unlockCheck(Context context) {
+        Context c = context.getApplicationContext();
+        initialize(c);
+        if (unlocked(c)) {
+            log("none", "unlock check found device unlocked; opening WeCom without notification");
+            unlockedEvent(c, "notification-off unlock check");
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long nextEnd = Long.MAX_VALUE;
+        boolean waiting = false;
+        for (Task task : allTasks(c)) {
+            if (!WAITING_UNLOCK.equals(task.state) || !RESULT_UNVERIFIED.equals(task.result) || !validNow(c, task))
+                continue;
+            waiting = true;
+            nextEnd = Math.min(nextEnd, task.end);
+        }
+        if (!waiting) return;
+        long at = Math.min(now + UNLOCK_CHECK_MS, nextEnd);
+        if (at <= now) return;
+        scheduleUnlockCheckAt(c, at);
+    }
+
+    private static void scheduleUnlockCheck(Context c, Task task) {
+        long at = Math.min(System.currentTimeMillis() + UNLOCK_CHECK_MS, task.end);
+        if (at <= System.currentTimeMillis()) return;
+        scheduleUnlockCheckAt(c, at);
+    }
+
+    private static void scheduleUnlockCheckAt(Context c, long at) {
+        AlarmManager manager = c.getSystemService(AlarmManager.class);
+        if (manager == null) return;
+        Intent intent = new Intent(c, ReminderActionReceiver.class)
+                .setAction(ReminderActionReceiver.UNLOCK_CHECK)
+                .setData(Uri.parse("clockin://unlock-check"));
+        PendingIntent pending = PendingIntent.getBroadcast(c, UNLOCK_CHECK_REQUEST, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        try {
+            if (Build.VERSION.SDK_INT >= 31 && manager.canScheduleExactAlarms())
+                manager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending);
+            else manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending);
+        } catch (SecurityException e) {
+            manager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pending);
+        }
+        log("none", "unlock check scheduled notificationOff=true");
     }
 
     private static void scheduleExpiry(Context c, Task task) {

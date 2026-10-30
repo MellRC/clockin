@@ -47,6 +47,15 @@ import org.json.JSONObject;
 
 public class MainActivity extends Activity {
     private static final int REQUEST_LOCATION = 30;
+    private static final int REQUEST_SETUP_FINE = 31;
+    private static final int REQUEST_SETUP_BACKGROUND = 32;
+    private static final String SETUP_FLOW = "setup_flow";
+    private boolean setupRunning;
+    private boolean enabledBeforeSetup;
+    private boolean awaitingSettings;
+    private boolean leftForSettings;
+    private boolean permissionRequestOpen;
+    private android.app.AlertDialog setupDialog;
     private WebView webView;
     private boolean webReady;
     private String pendingLocationSaveId = "";
@@ -68,9 +77,17 @@ public class MainActivity extends Activity {
         ReminderFlow.restore(this);
         ReminderFlow.catchUpOpen(this);
         syncWebState();
+        boolean resumed = resumeSetupIfNeeded();
+        if (setupRunning && !permissionRequestOpen
+                && (resumed || (awaitingSettings && leftForSettings))) {
+            awaitingSettings = false;
+            leftForSettings = false;
+            continueSetup();
+        }
     }
 
     @Override protected void onPause() {
+        if (awaitingSettings) leftForSettings = true;
         visible = false;
         super.onPause();
     }
@@ -155,9 +172,11 @@ public class MainActivity extends Activity {
     private final class NativeBridge {
         @JavascriptInterface public String getAppState() { return appStateJson(); }
 
+        @JavascriptInterface public void beginSetup() { runOnUiThread(MainActivity.this::startSetup); }
+
         @JavascriptInterface public void setEnabled(boolean enabled) {
             runOnUiThread(() -> {
-                if (enabled) enableSchedule();
+                if (enabled) startSetup();
                 else {
                     AttendanceRules.setEnabled(MainActivity.this, false);
                     ReminderFlow.cancel(MainActivity.this, "attendance paused");
@@ -403,6 +422,7 @@ public class MainActivity extends Activity {
             boolean saved = OfficeLocation.save(this, location);
             if (saved) syncWebState();
             reportSaveResult(pendingLocationSaveId, saved);
+            if (setupRunning) continueSetup();
             pendingLocationSaveId = "";
         };
         try {
@@ -413,6 +433,7 @@ public class MainActivity extends Activity {
             if (provider == null) {
                 reportSaveResult(pendingLocationSaveId, false);
                 pendingLocationSaveId = "";
+                if (setupRunning) abortSetup(false, "定位没有打开，公司位置还没保存");
                 return;
             }
             manager.requestSingleUpdate(provider, listener, Looper.getMainLooper());
@@ -420,11 +441,23 @@ public class MainActivity extends Activity {
         } catch (SecurityException e) {
             reportSaveResult(pendingLocationSaveId, false);
             pendingLocationSaveId = "";
+            if (setupRunning) abortSetup(false, null);
         }
     }
 
     @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode == REQUEST_SETUP_FINE || requestCode == REQUEST_SETUP_BACKGROUND) {
+            permissionRequestOpen = false;
+            if (setupRunning) {
+                if (results.length == 0 || results[0] != PackageManager.PERMISSION_GRANTED) {
+                    abortSetup(true, null);
+                    return;
+                }
+                continueSetup();
+            }
+            return;
+        }
         if (requestCode == REQUEST_LOCATION && results.length > 0
                 && results[0] == PackageManager.PERMISSION_GRANTED) setOfficeLocation();
         else if (requestCode == REQUEST_LOCATION) {
@@ -434,44 +467,139 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void enableSchedule() {
-        if (!OfficeLocation.isSet(this)) {
-            Toast.makeText(this, "请先在公司设置位置", Toast.LENGTH_LONG).show();
+    private void startSetup() {
+        if (!setupRunning) enabledBeforeSetup = AttendanceRules.isEnabled(this);
+        setupRunning = true;
+        awaitingSettings = false;
+        leftForSettings = false;
+        saveSetupFlow();
+        askNextSetup();
+    }
+
+    private boolean resumeSetupIfNeeded() {
+        if (setupRunning || (setupDialog != null && setupDialog.isShowing())) return false;
+        android.content.SharedPreferences prefs = getSharedPreferences(SETUP_FLOW, MODE_PRIVATE);
+        if (!prefs.getBoolean("running", false)) return false;
+        setupRunning = true;
+        enabledBeforeSetup = prefs.getBoolean("keep", false);
+        return true;
+    }
+
+    private void saveSetupFlow() {
+        getSharedPreferences(SETUP_FLOW, MODE_PRIVATE).edit()
+                .putBoolean("running", true)
+                .putBoolean("keep", enabledBeforeSetup)
+                .commit();
+    }
+
+    private void clearSetupFlow() {
+        getSharedPreferences(SETUP_FLOW, MODE_PRIVATE).edit().clear().commit();
+    }
+
+    private void continueSetup() {
+        dismissSetupDialog();
+        askNextSetup();
+    }
+
+    private void abortSetup(boolean permissionDenied, String reason) {
+        if (!setupRunning) return;
+        boolean keep = enabledBeforeSetup;
+        setupRunning = false;
+        awaitingSettings = false;
+        leftForSettings = false;
+        permissionRequestOpen = false;
+        dismissSetupDialog();
+        clearSetupFlow();
+        if (keep) {
+            AttendanceRules.setEnabled(this, true);
+            AlarmScheduler.scheduleWeek(this);
             syncWebState();
+            Toast.makeText(this, "授权未完成，自动打卡仍保持开启", Toast.LENGTH_LONG).show();
             return;
         }
+        if (permissionDenied) {
+            Toast.makeText(this, "这项权限没有允许，自动打卡还不能开启", Toast.LENGTH_LONG).show();
+        } else if (reason != null) {
+            Toast.makeText(this, reason, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void dismissSetupDialog() {
+        if (setupDialog == null) return;
+        setupDialog.setOnCancelListener(null);
+        android.app.AlertDialog dialog = setupDialog;
+        setupDialog = null;
+        if (dialog.isShowing()) dialog.dismiss();
+    }
+
+    private void askNextSetup() {
+        if (!setupRunning || isFinishing()) return;
+        if (setupDialog != null && setupDialog.isShowing()) return;
         if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, "请先允许精确定位", Toast.LENGTH_LONG).show();
-            syncWebState();
+            askSetup("需要精确位置，用来判断你在不在公司附近。", () -> {
+                permissionRequestOpen = true;
+                requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_SETUP_FINE);
+            });
             return;
         }
         if (Build.VERSION.SDK_INT >= 29 && checkSelfPermission(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            new android.app.AlertDialog.Builder(this)
-                    .setMessage("请在系统定位权限中选择“始终允许”，后台才能检测是否到公司。")
-                    .setPositiveButton("打开应用权限", (d, w) -> startActivity(new Intent(
-                            Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                            android.net.Uri.parse("package:" + getPackageName()))))
-                    .setNegativeButton("稍后", null).show();
-            syncWebState();
+            askSetup("需要始终允许定位。锁屏或退到后台时，才能判断你是否到了公司。", () -> {
+                if (Build.VERSION.SDK_INT >= 30) {
+                    awaitingSettings = true;
+                    openApplicationDetails();
+                } else {
+                    permissionRequestOpen = true;
+                    requestPermissions(new String[]{Manifest.permission.ACCESS_BACKGROUND_LOCATION},
+                            REQUEST_SETUP_BACKGROUND);
+                }
+            });
             return;
         }
         if (Build.VERSION.SDK_INT >= 31 && !AlarmScheduler.canScheduleExact(this)) {
-            openExactAlarmSettings();
-            Toast.makeText(this, "允许精确闹钟后，再点一次开启", Toast.LENGTH_LONG).show();
-            syncWebState();
+            askSetup("需要精确闹钟，到点才能把打卡提醒叫醒。", () -> {
+                awaitingSettings = true;
+                openExactAlarmSettings();
+            });
             return;
         }
         if (!ClockInAccessibilityService.isEnabled(this)) {
-            openAccessibilitySettings();
-            Toast.makeText(this, "开启“工力全开解锁与窗口辅助”后，再点一次", Toast.LENGTH_LONG).show();
-            syncWebState();
+            askSetup("需要开启“工力全开解锁与窗口辅助”。它只看解锁和前台窗口，不读聊天内容。", () -> {
+                awaitingSettings = true;
+                openAccessibilitySettings();
+            });
             return;
         }
+        if (!OfficeLocation.isSet(this)) {
+            askSetup("需要把当前位置保存为公司打卡点。请在公司附近允许。", this::setOfficeLocation);
+            return;
+        }
+        setupRunning = false;
+        enabledBeforeSetup = true;
+        clearSetupFlow();
         AttendanceRules.setEnabled(this, true);
         AlarmScheduler.scheduleWeek(this);
         syncWebState();
         Toast.makeText(this, "已安排未来一周的打卡", Toast.LENGTH_LONG).show();
+    }
+
+    private void askSetup(String message, Runnable allow) {
+        dismissSetupDialog();
+        setupDialog = new android.app.AlertDialog.Builder(this)
+                .setMessage(message)
+                .setPositiveButton("允许", (d, w) -> allow.run())
+                .setNegativeButton("以后再说", (d, w) -> abortSetup(false, null))
+                .setOnCancelListener(d -> {
+                    if (awaitingSettings || permissionRequestOpen) return;
+                    abortSetup(false, null);
+                })
+                .create();
+        setupDialog.show();
+        android.widget.Button allowButton = setupDialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE);
+        android.widget.Button laterButton = setupDialog.getButton(android.app.AlertDialog.BUTTON_NEGATIVE);
+        if (allowButton != null) allowButton.setTextColor(0xFF6B4A00);
+        if (laterButton != null) laterButton.setTextColor(0xFF71685B);
     }
 
     private void setThisWeekDoubleRest(boolean doubleRest) {

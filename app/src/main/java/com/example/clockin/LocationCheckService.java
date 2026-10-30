@@ -85,9 +85,12 @@ public class LocationCheckService extends Service {
                 + " pendingTasks=" + checks.size());
         cleanup();
         for (String id : checks) ReminderFlow.locationReady(this, id);
-        if (AttendanceRules.isEnabled(this) && AlarmScheduler.signature(this).equals(startedSignature)) for (Map.Entry<Long,Integer> entry : arrivals.entrySet()) {
-            if (inside) ReminderFlow.triggered(this, AlarmScheduler.ARRIVAL, entry.getKey());
-            else AlarmScheduler.retryArrival(this, LocalDate.ofEpochDay(entry.getKey()), entry.getValue() + 1);
+        if (AttendanceRules.isEnabled(this) && AlarmScheduler.signature(this).equals(startedSignature)) {
+            for (Map.Entry<Long,Integer> entry : arrivals.entrySet()) {
+                if (ReminderFlow.arrivalSettled(this, entry.getKey())) continue;
+                if (inside) ReminderFlow.triggered(this, AlarmScheduler.ARRIVAL, entry.getKey());
+                else AlarmScheduler.retryArrival(this, LocalDate.ofEpochDay(entry.getKey()), entry.getValue() + 1);
+            }
         }
         stopForeground(STOP_FOREGROUND_REMOVE);
         stopSelf();

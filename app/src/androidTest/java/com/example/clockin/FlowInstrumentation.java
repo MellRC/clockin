@@ -113,8 +113,8 @@ public final class FlowInstrumentation extends Instrumentation {
             check(fresh(2).getBoolean("foregroundObserved") && !fresh(2).getBoolean("foregroundConfirmed"),
                     "observed foreground remains distinct from causal confirmation");
             check(ReminderFlow.RESULT_UNKNOWN.equals(fresh(2).getString("result")),"foreground feedback never confirms attendance");
-            check(c.getSharedPreferences("launch_requests",0).getBoolean("statusNotificationSubmitted",false),
-                    "synthetic accepted foreground submits one silent-mode status notification");
+            check(!c.getSharedPreferences("launch_requests",0).getBoolean("statusNotificationSubmitted",true),
+                    "opened WeCom does not submit another alerting status notification");
             // A duplicate callback must not persist or vibrate again.
             c.getSharedPreferences("launch_requests",0).edit().putString("outcome","duplicate-sentinel").commit();
             finish.invoke(null,req,true,"duplicate synthetic observation");

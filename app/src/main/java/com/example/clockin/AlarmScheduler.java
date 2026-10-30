@@ -81,6 +81,10 @@ public final class AlarmScheduler {
             android.util.Log.i("AttendanceReminder", "arrival location retries exhausted day=" + day);
             return;
         }
+        if (ReminderFlow.arrivalSettled(c, day.toEpochDay())) {
+            android.util.Log.i("AttendanceReminder", "arrival already opened; retry skipped day=" + day);
+            return;
+        }
         if (!AttendanceRules.isEnabled(c) || !AttendanceRules.isWorkday(c, day)) return;
         ReminderFlow.Window w = ReminderFlow.window(c, ARRIVAL, day);
         long next = System.currentTimeMillis() + 60_000;

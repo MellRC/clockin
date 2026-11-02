@@ -130,6 +130,9 @@ public final class ReminderFlow {
         ReminderRuntime.attach(c);
         task = readTask(c, id); // Registration recheck may have consumed the task.
         if (!WAITING_UNLOCK.equals(task.state)) return;
+        prelaunchLocked(c, task);
+        task = readTask(c, id); // Prelaunch has its own write-ahead ledger, not a launch request.
+        if (task == null || !WAITING_UNLOCK.equals(task.state)) return;
 
         if (MODE_SILENT.equals(AttendanceRules.reminderMode(c))) {
             stopVibrationFor(c, id);
@@ -142,7 +145,7 @@ public final class ReminderFlow {
         if (unlocked(c)) {
             processUnlock(c, task, "trigger while already unlocked");
         } else {
-            postReminder(c, task, "解锁后将尝试打开企业微信。", true);
+            postReminder(c, task, notificationMessage(task), true);
             startVibration(c, id);
             if (!isNotificationAllowed(c)) {
                 log(id, "notification unavailable; unlock will still try to open WeCom");
@@ -348,6 +351,9 @@ public final class ReminderFlow {
             recoverInFlight(c, task);
             if (!validNow(c, task)) { expireTask(c, task, "invalid after restore"); continue; }
             scheduleExpiry(c, task);
+            prelaunchLocked(c, task);
+            task = readTask(c, task.id);
+            if (task == null || !isActive(task.state)) continue;
             postActionNotification(c, task, MODE_SILENT.equals(AttendanceRules.reminderMode(c)),
                     notificationMessage(task), WAITING_UNLOCK.equals(task.state) && !unlocked(c));
         }
@@ -614,6 +620,26 @@ public final class ReminderFlow {
         return true;
     }
 
+    /** One locked submission per task; never enters the foreground timeout/result state. */
+    private static void prelaunchLocked(Context c, Task task) {
+        boolean eligible = WAITING_UNLOCK.equals(task.state) && RESULT_UNVERIFIED.equals(task.result)
+                && validNow(c, task) && locationSatisfied(c, task)
+                && !task.notificationDismissed && !task.lockReminderDismissed;
+        if (!TaskPolicy.shouldPrelaunch(eligible, unlocked(c),
+                ClockInAccessibilityService.connected() != null, WeComLauncher.busy(),
+                task.prelaunchAttempted, task.attempts)) return;
+        task.prelaunchAttempted = true;
+        task.prelaunchAt = System.currentTimeMillis();
+        if (!saveTask(c, task, "locked punch prelaunch recorded before external intent")) return;
+        int outcome = WeComLauncher.prelaunchLocked(c, task.id);
+        Task latest = readTask(c, task.id);
+        if (latest == null) return;
+        latest.prelaunchOutcome = outcome;
+        latest.prelaunchSubmitted = outcome == WeComLauncher.SUBMITTED;
+        saveTask(c, latest, "locked punch prelaunch outcome=" + outcome
+                + "; still waiting for real unlock; attendance unchanged");
+    }
+
     private static void processUnlock(Context c, Task task, String source) {
         log(task.id, "unlock decision source=" + source + " result=" + task.result + " " + screen(c));
         if (!unlocked(c)) return;
@@ -673,6 +699,27 @@ public final class ReminderFlow {
             return;
         }
         task.locationPending = false;
+        // Recheck here so an asynchronous location refresh cannot bypass prelaunch reuse.
+        // Explicit notification/manual actions still submit the link.
+        boolean reusablePrelaunch = automatic && RESULT_UNVERIFIED.equals(task.result) && task.attempts == 0;
+        if (TaskPolicy.shouldReusePrelaunch(reusablePrelaunch, unlocked(c),
+                task.prelaunchSubmitted, WeComLauncher.isForeground(c))) {
+            // Only the package is observed. Neither the punch page nor attendance is verified.
+            task.foregroundObserved = true;
+            task.foregroundConfirmed = false;
+            task.state = WAITING_USER;
+            task.launch = "waiting_user";
+            task.result = RESULT_UNKNOWN;
+            task.resultSource = "prelaunch_foreground_observed_page_unverified";
+            task.resultAt = System.currentTimeMillis();
+            task.attemptedAt = task.prelaunchAt;
+            if (saveTask(c, task, "prelaunched WeCom observed after unlock; no duplicate automatic link")) {
+                cancelFullScreen(c, task.id);
+                LockReminderActivity.refresh();
+                postActionNotification(c, task, true, notificationMessage(task), false, false);
+            }
+            return;
+        }
         task.state = REQUESTING_OPEN;
         task.launch = "requesting";
         task.attempts++;
@@ -711,8 +758,9 @@ public final class ReminderFlow {
         task.state = requested ? REQUESTING_OPEN : WAITING_USER;
         if (!requested) {
             task.result = RESULT_UNKNOWN;
-            task.resultSource = outcome == WeComLauncher.NOT_INSTALLED
-                    ? "wecom_not_installed" : "launch_unavailable_not_attendance_failure";
+            task.resultSource = outcome == WeComLauncher.NOT_INSTALLED ? "wecom_not_installed"
+                    : outcome == WeComLauncher.PUNCH_UNAVAILABLE ? "punch_link_unavailable"
+                    : "launch_unavailable_not_attendance_failure";
         }
         saveTask(c, task, "startActivity returned=" + requested + "; foreground not inferred");
         if (requested) {
@@ -766,15 +814,22 @@ public final class ReminderFlow {
     }
 
     private static void notifySilentOnce(Context c, Task task) {
-        postActionNotification(c, task, true, "有效区间内真正解锁且条件满足时，才尝试打开企业微信。", false);
+        postActionNotification(c, task, true, notificationMessage(task), false);
     }
     private static String notificationMessage(Task task) {
+        if ("punch_link_unavailable".equals(task.resultSource)
+                || task.prelaunchAttempted && task.prelaunchOutcome == WeComLauncher.PUNCH_UNAVAILABLE
+                && WAITING_UNLOCK.equals(task.state))
+            return "当前企业微信未提供可用的打卡直达入口，请手动打开并核对版本。";
+        if ("wecom_not_installed".equals(task.resultSource)) return "未找到企业微信，请先安装或启用企业微信。";
         if ("background_launch_blocked".equals(task.resultSource) && WAITING_UNLOCK.equals(task.state))
-            return "后台暂时不能打开企业微信，请点击这条通知打开。";
+            return "后台暂时不能打开企业微信打卡页，请点击这条通知重试。";
+        if (task.prelaunchSubmitted && WAITING_UNLOCK.equals(task.state))
+            return "已提交打卡链接预启动请求；解锁后未观察到企业微信前台时再尝试跳转，请自行核对打卡页。";
         if (task.foregroundObserved) return "已观察到企业微信进入前台。打卡结果待确认，请核对本次记录。";
         if (RESULT_UNKNOWN.equals(task.result)) return "无法确认企业微信是否打开。打卡结果待确认，可点击再次打开。";
-        if (REQUESTING_OPEN.equals(task.state)) return "已请求打开企业微信，正在等待前台切换。打卡结果待确认。";
-        return "请在有效区间内解锁；符合条件后尝试打开企业微信。";
+        if (REQUESTING_OPEN.equals(task.state)) return "已请求跳转企业微信打卡页，正在等待前台切换。打卡结果待确认。";
+        return "请在有效区间内解锁；符合条件后尝试跳转企业微信打卡页。";
     }
     private static void postReminder(Context c, Task task, String message, boolean ongoing) {
         postActionNotification(c, task, false, message, ongoing, true);
@@ -1252,6 +1307,9 @@ public final class ReminderFlow {
         long attemptedAt, resultAt, previousResultAt;
         boolean notificationAttempted, notificationDismissed, foregroundConfirmed, foregroundObserved, locationPending, locationAutomatic;
         boolean lockReminderDismissed, waitingVibrationSuppressed;
+        boolean prelaunchAttempted, prelaunchSubmitted;
+        int prelaunchOutcome = WeComLauncher.BLOCKED;
+        long prelaunchAt;
         long lockReminderDismissedAt;
         String lockReminderDismissSource = "";
         String requestId = "";
@@ -1281,6 +1339,8 @@ public final class ReminderFlow {
             j.put("requestId", requestId); j.put("foregroundConfirmed", foregroundConfirmed); j.put("foregroundObserved", foregroundObserved);
             j.put("lastUnlockGeneration", lastUnlockGeneration); j.put("locationUnlockGeneration", locationUnlockGeneration);
             j.put("locationPending", locationPending); j.put("locationAutomatic", locationAutomatic);
+            j.put("prelaunchAttempted", prelaunchAttempted); j.put("prelaunchSubmitted", prelaunchSubmitted);
+            j.put("prelaunchOutcome", prelaunchOutcome); j.put("prelaunchAt", prelaunchAt);
             return j;
         }
         static Task from(JSONObject j) throws JSONException {
@@ -1316,6 +1376,10 @@ public final class ReminderFlow {
             t.locationUnlockGeneration = j.optLong("locationUnlockGeneration", 0);
             t.locationPending = j.optBoolean("locationPending", false);
             t.locationAutomatic = j.optBoolean("locationAutomatic", false);
+            t.prelaunchAttempted = j.optBoolean("prelaunchAttempted", false);
+            t.prelaunchSubmitted = j.optBoolean("prelaunchSubmitted", false);
+            t.prelaunchOutcome = j.optInt("prelaunchOutcome", WeComLauncher.BLOCKED);
+            t.prelaunchAt = j.optLong("prelaunchAt", 0);
             return t;
         }
     }

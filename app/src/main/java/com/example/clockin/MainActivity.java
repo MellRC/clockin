@@ -321,10 +321,12 @@ public class MainActivity extends Activity {
                 int outcome = WeComLauncher.launch(MainActivity.this);
                 if (outcome == WeComLauncher.NOT_INSTALLED) {
                     Toast.makeText(MainActivity.this, "请先安装企业微信", Toast.LENGTH_LONG).show();
-                } else if (outcome == WeComLauncher.ALREADY_FOREGROUND) {
-                    Toast.makeText(MainActivity.this, "企业微信已在前台，请核对打卡", Toast.LENGTH_LONG).show();
-                } else if (outcome != WeComLauncher.SUBMITTED) {
-                    Toast.makeText(MainActivity.this, "暂时无法打开企业微信，请从通知进入", Toast.LENGTH_LONG).show();
+                } else if (outcome == WeComLauncher.PUNCH_UNAVAILABLE) {
+                    Toast.makeText(MainActivity.this, "当前企业微信不支持此打卡链接，请手动进入打卡页", Toast.LENGTH_LONG).show();
+                } else if (outcome == WeComLauncher.SUBMITTED) {
+                    Toast.makeText(MainActivity.this, "已请求跳转企业微信打卡页，请核对实际页面", Toast.LENGTH_LONG).show();
+                } else {
+                    Toast.makeText(MainActivity.this, "暂时无法打开打卡页，请检查企业微信及后台启动权限", Toast.LENGTH_LONG).show();
                 }
             });
         }

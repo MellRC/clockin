@@ -34,6 +34,18 @@ final class TaskPolicy {
     static final float LOCK_HINT_TEXT_GAP_DP = 8f;
     static final float LOCK_HINT_STROKE_DP = 1.8f;
 
+    /** Prelaunch does not consume the ordinary unlocked launch/retry budget. */
+    static boolean shouldPrelaunch(boolean eligible, boolean unlocked, boolean observerReady,
+                                   boolean launchBusy, boolean alreadyAttempted, int attempts) {
+        return eligible && !unlocked && observerReady && !launchBusy && !alreadyAttempted && attempts == 0;
+    }
+
+    /** A submitted link plus observed WeCom foreground avoids an automatic duplicate jump. */
+    static boolean shouldReusePrelaunch(boolean eligible, boolean unlocked, boolean submitted,
+                                       boolean wecomForeground) {
+        return eligible && unlocked && submitted && wecomForeground;
+    }
+
     static boolean shouldCollapseSwipe(float dx, float dy, float vxPxPerSecond,
                                        int widthPx, float density, int touchSlop,
                                        boolean multiTouch, boolean cancelled) {

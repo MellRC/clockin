@@ -1,8 +1,11 @@
 package com.example.clockin;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,11 +15,13 @@ import android.util.Log;
 /** Records intent submission separately from observed foreground and attendance outcome. */
 public final class WeComLauncher {
     public static final String PACKAGE = "com.tencent.wework";
+    public static final String PUNCH_URI = "wxwork://jump?target=punch&tab=1";
     public static final int NOT_INSTALLED = 0;
     public static final int SUBMITTED = 1;
     public static final int ALREADY_FOREGROUND = 2;
     public static final int BLOCKED = 3;
     public static final int BACKGROUND_BLOCKED = 4;
+    public static final int PUNCH_UNAVAILABLE = 5;
     private static final String TAG = "AttendanceReminder";
     private static final Handler handler = new Handler(Looper.getMainLooper());
     private static Request pending;
@@ -32,13 +37,55 @@ public final class WeComLauncher {
         return !visible && ClockInAccessibilityService.connected() == null;
     }
 
-    static int launch(Context c, String task, String requestId) {
-        if (busy()) return BLOCKED;
-        Intent intent = c.getPackageManager().getLaunchIntentForPackage(PACKAGE);
-        if (intent == null || intent.resolveActivity(c.getPackageManager()) == null) {
-            Log.i(TAG, "task=" + task + " launch unavailable: package/entry missing");
+    /** Package-bound deep link: never force-stop WeCom or clear its task/back stack. */
+    static Intent punchIntent() {
+        return new Intent(Intent.ACTION_VIEW, Uri.parse(PUNCH_URI))
+                .setPackage(PACKAGE).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+    }
+
+    private static int unavailable(Context c, String task) {
+        try {
+            c.getPackageManager().getApplicationInfo(PACKAGE, 0);
+            Log.i(TAG, "task=" + task + " punch deep link unavailable in installed WeCom");
+            return PUNCH_UNAVAILABLE;
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.i(TAG, "task=" + task + " WeCom is not installed or not visible");
             return NOT_INSTALLED;
         }
+    }
+
+    /** Best-effort locked prelaunch only; it is not a foreground/attendance request. */
+    static int prelaunchLocked(Context c, String task) {
+        if (ReminderRuntime.unlocked(c) || busy()) return BLOCKED;
+        ClockInAccessibilityService service = ClockInAccessibilityService.connected();
+        if (service == null) return BACKGROUND_BLOCKED;
+        Intent intent = punchIntent();
+        if (intent.resolveActivity(c.getPackageManager()) == null) return unavailable(c, task);
+        try {
+            service.startActivity(intent);
+            // Do not start the five-second foreground timer while the user is locked.
+            Log.i(TAG, "task=" + task + " locked punch prelaunch submitted; page and attendance unverified");
+            return SUBMITTED;
+        } catch (ActivityNotFoundException e) {
+            return PUNCH_UNAVAILABLE;
+        } catch (RuntimeException e) {
+            Log.i(TAG, "task=" + task + " locked prelaunch rejected=" + e.getClass().getSimpleName());
+            return BACKGROUND_BLOCKED;
+        }
+    }
+
+    static boolean isForeground(Context c) {
+        if (!ReminderRuntime.unlocked(c)) return false;
+        ClockInAccessibilityService service = ClockInAccessibilityService.connected();
+        ClockInAccessibilityService.Foreground foreground = service == null ? null : service.foreground();
+        return foreground != null && PACKAGE.equals(foreground.pkg);
+    }
+
+    static int launch(Context c, String task, String requestId) {
+        if (busy()) return BLOCKED;
+        Intent intent = punchIntent();
+        android.content.ComponentName entry = intent.resolveActivity(c.getPackageManager());
+        if (entry == null) return unavailable(c, task);
         ClockInAccessibilityService service = ClockInAccessibilityService.connected();
         boolean visible = (c instanceof Activity && !((Activity)c).isFinishing()) || MainActivity.visible;
         if (backgroundLaunchBlocked(c)) {
@@ -46,30 +93,29 @@ public final class WeComLauncher {
             return BACKGROUND_BLOCKED;
         }
         ClockInAccessibilityService.Foreground before = service == null ? null : service.foreground();
-        if (before != null && PACKAGE.equals(before.pkg)) {
-            Log.i(TAG, "task=" + task + " already foreground; counted as open, no new launch");
-            if ("manual".equals(task)) ReminderFlow.manualLaunchFinished(c, requestId, true);
-            return ALREADY_FOREGROUND;
-        }
+        // WeCom may already be showing chat/workbench, not punch. Still send the link.
         Request request = new Request(c.getApplicationContext(), task, requestId,
-                intent.resolveActivity(c.getPackageManager()).getClassName(), before);
+                entry.getClassName(), before);
         // Persist BEFORE calling the launch API, including launches from the manual test button.
         if (!c.getSharedPreferences("launch_requests", Context.MODE_PRIVATE).edit()
                 .putString("request", requestId).putString("task", task)
-                .putLong("uptime", request.started).putBoolean("foregroundObserved", false)
+                .putLong("uptime", request.started).putString("targetUri", PUNCH_URI)
+                .putBoolean("foregroundObserved", false)
                 .putBoolean("statusNotificationSubmitted", false)
                 .putBoolean("confirmed", false).commit()) return BLOCKED;
         pending = request;
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
         try {
-            Context launcher = visible ? c : service;
+            Context launcher = visible || service == null ? c : service;
             launcher.startActivity(intent);
             request.submitted = true;
             handler.postDelayed(request.timeout, TaskPolicy.LAUNCH_CONFIRM_MS);
             Log.i(TAG, "task=" + task + " request=" + requestId + " submitted BAL="
                     + (visible ? "visible_activity_or_notification_tap" : "system_bound_accessibility")
-                    + "; foreground unconfirmed");
+                    + "; punch link submitted; page and attendance unconfirmed");
             return SUBMITTED;
+        } catch (ActivityNotFoundException e) {
+            pending = null;
+            return PUNCH_UNAVAILABLE;
         } catch (RuntimeException e) {
             pending = null;
             Log.i(TAG, "task=" + task + " request=" + requestId + " rejected=" + e.getClass().getSimpleName());

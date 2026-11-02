@@ -3,7 +3,50 @@ import java.time.*;
 public final class PolicyTests {
     private static int n;
     private static void check(boolean ok, String name) { if (!ok) throw new AssertionError(name); n++; }
+    private static void prelaunchPolicy() {
+        // Exhaust every gate independently, including corrupt/nonzero normal attempt counts.
+        for (int mask=0;mask<32;mask++) {
+            boolean eligible=(mask&1)!=0, unlocked=(mask&2)!=0, observerReady=(mask&4)!=0;
+            boolean launchBusy=(mask&8)!=0, alreadyAttempted=(mask&16)!=0;
+            for (int attempts:new int[]{-1,0,1,TaskPolicy.MAX_AUTOMATIC_ATTEMPTS}) {
+                boolean expected=mask==5 && attempts==0;
+                check(TaskPolicy.shouldPrelaunch(eligible,unlocked,observerReady,launchBusy,
+                                alreadyAttempted,attempts)==expected,
+                        "prelaunch gate matrix mask="+mask+" attempts="+attempts);
+            }
+        }
+        for (int mask=0;mask<16;mask++) {
+            check(TaskPolicy.shouldReusePrelaunch((mask&1)!=0,(mask&2)!=0,(mask&4)!=0,(mask&8)!=0)
+                            ==(mask==15),
+                    "prelaunch reuse requires eligible unlocked submitted observed foreground mask="+mask);
+        }
+
+        long start=1000, end=2000;
+        for (long now:new long[]{start-1,start,end-1,end}) {
+            boolean eligible=TaskPolicy.within(now,start,end);
+            boolean inside=now==start || now==end-1;
+            check(TaskPolicy.shouldPrelaunch(eligible,false,true,false,false,0)==inside,
+                    "locked prelaunch respects half-open task window now="+now);
+            check(TaskPolicy.shouldReusePrelaunch(eligible,true,true,true)==inside,
+                    "prelaunch reuse respects half-open task window now="+now);
+        }
+        boolean freshArrival=TaskPolicy.freshLocation(181000,1000);
+        boolean staleArrival=TaskPolicy.freshLocation(181001,1000);
+        check(TaskPolicy.shouldPrelaunch(freshArrival,false,true,false,false,0),
+                "fresh eligible arrival can prelaunch at location-age boundary");
+        check(!TaskPolicy.shouldPrelaunch(staleArrival,false,true,false,false,0),
+                "ineligible stale-location arrival cannot prelaunch");
+        check(!TaskPolicy.shouldReusePrelaunch(staleArrival,true,true,true),
+                "observed foreground cannot bypass stale arrival eligibility");
+        check(!TaskPolicy.shouldPrelaunch(true,false,true,false,true,0),
+                "persisted prelaunch attempt blocks duplicate trigger without consuming normal attempts");
+        check(!TaskPolicy.shouldReusePrelaunch(true,true,false,true),
+                "foreground without a submitted prelaunch requires normal deep-link fallback");
+        check(!TaskPolicy.shouldReusePrelaunch(true,true,true,false),
+                "submitted prelaunch without observed foreground requires normal fallback");
+    }
     public static void main(String[] args) {
+        prelaunchPolicy();
         ZoneId z = ZoneId.of("Asia/Shanghai");
         LocalDate d = LocalDate.of(2026,10,15);
         long[] a = TaskPolicy.window(d,1,LocalTime.of(23,30),LocalTime.of(23,40),LocalTime.of(23,45),LocalTime.of(23,50),z);
